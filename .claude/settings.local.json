@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm install --legacy-peer-deps)",
+      "Bash(npm run dev)",
+      "Bash(tasklist)",
+      "Bash(findstr next)",
+      "Bash(npx next dev -p 3001)",
+      "Bash(npm run build)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(npm install next@14.2.13 --no-save)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000 --connect-timeout 10)"
+    ]
+  }
+}
