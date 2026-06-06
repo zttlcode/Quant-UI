@@ -1,105 +1,186 @@
-# Quant UI - 量化交易策略实盘展示平台
+# Quant-UI: Stock Strategy Visualization Platform
 
-专业的量化交易策略实盘展示平台，实时监控策略表现与市场行情。采用深色量化交易终端风格设计，类似 TradingView Dashboard。
+股票策略可视化平台 — 基于 Streamlit + Plotly 的交互式量化交易信号可视化系统。
 
-## 特性
+## 功能特性
 
-- 📊 **策略总览**：实时展示总收益率、今日收益、胜率、运行中策略数量
-- 📈 **资金曲线图**：可视化策略资金增长曲线
-- 🃏 **策略卡片**：详细展示每个策略的绩效指标（PNL、Sharpe、最大回撤、胜率等）
-- 🌍 **全球市场行情**：SSE、HSI、NASDAQ、NIKKEI、BTC 实时K线图
-- 🎯 **交易信号标记**：在图表上标记买卖点
-- 📊 **策略对比仪表盘**：收益排行榜、Sharpe对比条形图、最大回撤对比
-- 🌙 **深色模式**：专为量化交易设计的深色主题
-- 📱 **响应式布局**：适配桌面、平板和手机
-- ✨ **交互效果**：数字增长动画、卡片hover发光效果
+- 📊 **多策略支持**: 插件化策略架构，轻松扩展新策略
+- 📈 **交互式图表**: K线图 + MA均线 + MACD + 买卖点标记
+- 🔍 **股票搜索**: 按股票代码、市场、级别筛选
+- 📋 **交易明细**: 完整的交易记录表，含收益率、标签、概率
+- 💰 **持仓管理**: 实时显示持仓收益、入场价、止损位
+- 📥 **报表导出**: 一键导出 HTML 交互式报表
+- 🎨 **深色主题**: 现代化深色主题，清晰区分买卖点
+
+## 目录结构
+
+```
+Quant-UI/
+├── app.py                      # Streamlit 主入口
+├── config.yaml                 # 配置文件
+├── requirements.txt            # Python 依赖
+├── README.md                   # 本文件
+├── output/                     # 导出报表目录
+└── src/
+    ├── config/                 # 配置加载
+    │   └── settings.py         # AppConfig, 环境变量覆盖
+    ├── data_loader/            # 数据加载层
+    │   ├── signal_loader.py    # 策略信号 CSV 读取
+    │   ├── price_loader.py     # 历史行情 CSV 读取
+    │   └── extra_data.py       # 策略额外数据接口
+    ├── data_model/             # 数据模型
+    │   ├── enums.py            # SignalType, LabelType 枚举
+    │   └── schemas.py          # TradeSignal, PriceBar, TradePair 等
+    ├── indicators/             # 技术指标
+    │   ├── ma.py               # 移动平均线 (MA5/10/20)
+    │   ├── macd.py             # MACD (DIF/DEA/柱)
+    │   └── atr.py              # ATR 及止损计算
+    ├── strategy/               # 策略适配层
+    │   ├── base.py             # 策略基类
+    │   ├── adapters.py         # 具体策略实现
+    │   └── registry.py         # 策略注册中心
+    ├── trade_engine/           # 交易引擎
+    │   ├── pairer.py           # 买卖配对
+    │   └── pnl.py              # 收益计算
+    ├── visualizer/             # 可视化
+    │   ├── chart_builder.py    # Plotly 图表构建
+    │   └── components.py       # UI 组件
+    └── utils/                  # 工具
+        ├── date_utils.py       # 日期解析
+        ├── file_utils.py       # 文件扫描
+        └── logger.py           # 日志配置
+```
+
+## 快速启动
+
+### 1. 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. 配置数据路径
+
+编辑 `config.yaml`，设置你的数据目录：
+
+```yaml
+signal_root_dir: "D:/github/RobotMeQ_Dataset/QuantData"
+price_root_dir: "D:/github/RobotMeQ_Dataset/QuantData/live"
+```
+
+也可通过环境变量覆盖：
+- `QUANT_UI_SIGNAL_ROOT_DIR`
+- `QUANT_UI_PRICE_ROOT_DIR`
+
+### 3. 启动应用
+
+```bash
+streamlit run app.py
+```
+
+浏览器会自动打开 `http://localhost:8501`。
+
+## 数据约定
+
+### 策略信号数据
+
+信号文件放在 `{signal_root_dir}/trade_point_live_inference_{策略名}/` 目录下。
+
+文件名格式: `{市场}_{股票代码}_{级别}.csv`
+- 例如: `A_000027_d.csv` (A股, 000027, 日线)
+
+CSV 列:
+- `time`: 交易时间 (YYYY-MM-DD HH:MM:SS)
+- `price`: 交易价格
+- `signal`: buy / sell
+- `label` (可选): 1=有效买入, 2=无效买入, 3=有效卖出, 4=无效卖出
+- `prob` (可选): 模型分类概率
+
+### 历史行情数据
+
+行情文件放在 `{price_root_dir}/` 目录下。
+
+文件名格式: `live_bar_{市场}_{股票代码}_{级别}.csv`
+- 例如: `live_bar_A_000027_d.csv`
+
+CSV 列: `time, open, high, low, close, volume`
+
+### Fuzzy MA 额外数据 (avmood)
+
+平台通过内置 `fuzzy()` 算法实时从行情数据计算 avmood 指标，无需额外配置文件。
+
+## 如何新增策略
+
+1. 创建策略信号 CSV 目录: `{signal_root_dir}/trade_point_live_inference_{新策略名}/`
+2. 在 `src/strategy/adapters.py` 中创建适配器:
+
+```python
+class MyNewAdapter(BaseStrategyAdapter):
+    strategy_name = "my_new_strategy"
+    display_name = "我的新策略"
+
+    @property
+    def description(self) -> str:
+        return "策略描述"
+```
+
+3. 在 `src/strategy/registry.py` 的 `init_registry()` 中注册:
+
+```python
+from .adapters import MyNewAdapter
+registry.register(MyNewAdapter(config))
+```
+
+4. 在 `config.yaml` 的 `default_strategy_list` 中添加策略名。
+
+5. （可选）如果需要额外数据，继承 `StrategyExtraDataLoader` 并设置到适配器的 `_extra_loader`。
+
+## 配置项说明
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| signal_root_dir | (必填) | 策略信号数据根目录 |
+| price_root_dir | (必填) | 历史行情数据根目录 |
+| output_dir | ./output | 报表导出目录 |
+| default_strategy_list | [] | 默认加载的策略列表 |
+| default_market | A | 默认市场 |
+| default_level | d | 默认时间级别 |
+| show_only_effective_signal | false | 是否仅显示有效信号 |
+| hold_stop_atr_multiplier | 1.0 | 止损 ATR 倍数 |
+| commission | 0.0 | 手续费 |
+| slippage | 0.0 | 滑点 |
+| macd_fast | 12 | MACD 快线周期 |
+| macd_slow | 26 | MACD 慢线周期 |
+| macd_signal | 9 | MACD 信号线周期 |
+| ma_periods | [5, 10, 20] | 均线周期列表 |
+| atr_period | 14 | ATR 计算周期 |
+| duplicate_signal_strategy | first | 同日多信号处理策略 |
+
+## 边界情况处理
+
+| 场景 | 处理方式 |
+|------|----------|
+| 只有买点没有卖点 | 标记为未平仓，按当前价计算浮动收益 |
+| 只有卖点没有买点 | 根据配置忽略或警告 |
+| 买卖点时间与行情不一致 | 明确提示警告信息 |
+| 同一天多个信号 | 按配置保留第一条或最后一条 |
+| 连续买入信号 | 按配置保留第一条或替换为最新 |
+| 信号文件存在但行情缺失 | 明确报错提示 |
+| 行情文件存在但信号缺失 | 正常显示，无信号标记 |
+| fuzzy_ma 无 aa 数据 | 自动从行情计算 avmood |
+| ATR/MACD 窗口不足 | 返回 NaN，页面提示 |
+| 股票停牌或数据断档 | 图中自然显示空白段 |
 
 ## 技术栈
 
-- **Next.js 14** (App Router)
-- **TypeScript**
-- **Tailwind CSS**
-- **shadcn/ui** (基于 Radix UI)
-- **Recharts** (数据可视化)
-- **next-themes** (主题切换)
-
-## 快速开始
-
-### 安装依赖
-
-```bash
-npm install
-```
-
-### 开发环境
-
-```bash
-npm run dev
-```
-
-然后在浏览器中打开 [http://localhost:3000](http://localhost:3000)
-
-### 生产构建
-
-```bash
-npm run build
-npm start
-```
-
-## 项目结构
-
-```
-quant-ui/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # 根布局
-│   ├── page.tsx          # 主页
-│   └── globals.css       # 全局样式
-├── components/            # React组件
-│   ├── navbar.tsx        # 导航栏
-│   ├── hero-stats.tsx    # 英雄统计区
-│   ├── strategy-card.tsx # 策略卡片
-│   ├── market-chart.tsx  # 市场图表
-│   └── performance-dashboard.tsx # 性能仪表盘
-├── lib/                   # 工具函数和数据
-│   └── mock-data.ts      # 模拟数据
-├── types/                 # TypeScript类型定义
-│   ├── strategy.ts       # 策略类型
-│   └── trade.ts          # 交易类型
-└── public/               # 静态资源
-```
-
-## 数据说明
-
-平台使用模拟数据驱动UI，包含：
-
-- 6个量化交易策略
-- 5个全球市场（SSE、HSI、NASDAQ、NIKKEI、BTC）
-- 实时交易信号
-- 30天资金曲线历史数据
-
-所有数据均为模拟生成，仅用于展示UI功能。
-
-## 设计特色
-
-### 颜色系统
-- **盈利**：绿色 (`#10b981`)
-- **亏损**：红色 (`#ef4444`)
-- **背景**：深色终端 (`#0a0e17`)
-- **卡片**：深灰 (`#111827`)
-- **边框**：灰蓝 (`#1f2937`)
-
-### 动画效果
-- 数字增长动画
-- 卡片hover发光效果
-- 实时状态脉冲动画
-- 平滑过渡效果
+- **Web 框架**: Streamlit
+- **图表**: Plotly
+- **数据处理**: pandas, numpy
+- **配置**: YAML + dataclasses
 
 ## 许可证
 
 MIT
-
-## 联系方式
-
-- Twitter: [@quant_trader](https://twitter.com/quant_trader)
+ps://twitter.com/quant_trader)
 - 微信: quant_trader
 - 知识星球: [量化交易社区](https://knowledge-planet.com/quant)
