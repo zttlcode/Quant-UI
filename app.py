@@ -32,6 +32,7 @@ from src.visualizer.components import (
     render_data_warnings,
     render_signal_filter_ui,
 )
+from src.visualizer.index_condition_ui import render_index_condition_section
 
 import streamlit as st
 import pandas as pd
@@ -174,6 +175,9 @@ def render_home():
                 st.error(f"加载策略 '{name}' 失败: {e}")
 
             st.markdown("---")
+
+    # ---- AI 指数行情分类模块 ----
+    render_index_condition_section()
 
 
 # ============================================================

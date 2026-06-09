@@ -2,6 +2,7 @@ import HeroStats from '@/components/hero-stats'
 import StrategyCard from '@/components/strategy-card'
 import MarketChart from '@/components/market-chart'
 import PerformanceDashboard from '@/components/performance-dashboard'
+import IndexConditionChart from '@/components/index-condition-chart'
 import { strategies, marketData, tradeSignals } from '@/lib/mock-data'
 
 export default function Home() {
@@ -19,6 +20,25 @@ export default function Home() {
           </div>
         </div>
         <HeroStats />
+      </section>
+
+      {/* AI 指数行情分类 */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold">AI 指数行情分类</h2>
+            <p className="text-sm text-terminal-muted mt-1">
+              基于深度学习模型实时预测指数行情状态（趋势上涨 / 趋势下跌 / 震荡）
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium flex items-center gap-2">
+              <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+              AI 实时推理
+            </span>
+          </div>
+        </div>
+        <IndexConditionChart />
       </section>
 
       {/* 策略列表 */}
