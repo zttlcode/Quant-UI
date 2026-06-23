@@ -13,10 +13,6 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# 固定的 CSV 文件路径
-_PRICE_CSV_PATH = Path("D:/github/RobotMeQ_Dataset/QuantData/live_index/live_bar_A_000001_d.csv")
-_CONDITION_CSV_PATH = Path("D:/github/RobotMeQ_Dataset/QuantData/market_condition_live/A_000001_d.csv")
-
 # 行情分类中文标签和颜色
 CONDITION_LABELS: Dict[str, str] = {
     "trend_up": "上涨",
@@ -52,23 +48,38 @@ class IndexConditionData:
 def load_index_condition_data() -> IndexConditionData:
     """加载并合并指数行情数据和行情分类数据。
 
+    CSV file paths are read from config.yaml (index_price_csv_path and
+    index_condition_csv_path).
+
     Returns:
         IndexConditionData with merged OHLCV data and market conditions.
 
     Raises:
         FileNotFoundError: If either CSV file is missing.
+        ValueError: If the required config keys are not set.
     """
+    from src.config.settings import get_config
+
+    cfg = get_config()
+    if not cfg.index_price_csv_path:
+        raise ValueError("config.yaml 中未配置 index_price_csv_path")
+    if not cfg.index_condition_csv_path:
+        raise ValueError("config.yaml 中未配置 index_condition_csv_path")
+
+    price_csv_path = Path(cfg.index_price_csv_path)
+    condition_csv_path = Path(cfg.index_condition_csv_path)
+
     # 验证文件存在
-    if not _PRICE_CSV_PATH.exists():
-        raise FileNotFoundError(f"价格数据文件不存在: {_PRICE_CSV_PATH}")
-    if not _CONDITION_CSV_PATH.exists():
-        raise FileNotFoundError(f"行情分类数据文件不存在: {_CONDITION_CSV_PATH}")
+    if not price_csv_path.exists():
+        raise FileNotFoundError(f"价格数据文件不存在: {price_csv_path}")
+    if not condition_csv_path.exists():
+        raise FileNotFoundError(f"行情分类数据文件不存在: {condition_csv_path}")
 
-    logger.info("Loading price data from: %s", _PRICE_CSV_PATH)
-    price_df = _read_price_csv(_PRICE_CSV_PATH)
+    logger.info("Loading price data from: %s", price_csv_path)
+    price_df = _read_price_csv(price_csv_path)
 
-    logger.info("Loading condition data from: %s", _CONDITION_CSV_PATH)
-    condition_df = _read_condition_csv(_CONDITION_CSV_PATH)
+    logger.info("Loading condition data from: %s", condition_csv_path)
+    condition_df = _read_condition_csv(condition_csv_path)
 
     # 合并：以价格数据为准，按日期匹配分类数据
     logger.info(

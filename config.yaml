@@ -8,6 +8,13 @@ signal_root_dir: "D:/github/RobotMeQ_Dataset/QuantData"
 # Root directory for historical price data (live bars)
 price_root_dir: "D:/github/RobotMeQ_Dataset/QuantData/live"
 
+# Paths for index market condition data (live bar CSV and condition classification CSV)
+index_price_csv_path: "D:/github/RobotMeQ_Dataset/QuantData/live_index/live_bar_A_000001_d.csv"
+index_condition_csv_path: "D:/github/RobotMeQ_Dataset/QuantData/market_condition_live/A_000001_d.csv"
+
+# Path to stock code-name mapping CSV (asset_code/a800_stocks.csv)
+stock_name_csv_path: "D:/github/RobotMeQ_Dataset/QuantData/asset_code/a800_stocks.csv"
+
 # Output directory for exported HTML reports
 output_dir: "./output"
 

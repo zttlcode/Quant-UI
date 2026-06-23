@@ -6,11 +6,21 @@
 
 - 📊 **多策略支持**: 插件化策略架构，轻松扩展新策略
 - 📈 **交互式图表**: K线图 + MA均线 + MACD + 买卖点标记
-- 🔍 **股票搜索**: 按股票代码、市场、级别筛选
+- 🔍 **资产搜索**: 按股票代码搜索、按持仓状态筛选
 - 📋 **交易明细**: 完整的交易记录表，含收益率、标签、概率
 - 💰 **持仓管理**: 实时显示持仓收益、入场价、止损位
+- 🤖 **AI 行情分类**: 深度学习模型实时识别指数行情状态（上涨/下跌/震荡）
 - 📥 **报表导出**: 一键导出 HTML 交互式报表
 - 🎨 **深色主题**: 现代化深色主题，清晰区分买卖点
+
+## 页面结构
+
+| 页面 | 说明 |
+|------|------|
+| 🏠 首页 | 平台功能介绍：策略交易 + AI 行情分类 |
+| 📈 策略详情 | 选择策略后查看交易资产列表，点击行进入资产详情 |
+| 📋 资产详情 | K线图 + 技术指标 + 买卖信号 + 交易明细 |
+| 🤖 行情分类 | AI 模型对指数行情的实时分类（趋势上涨/下跌/震荡） |
 
 ## 目录结构
 
@@ -66,6 +76,9 @@ pip install -r requirements.txt
 ```yaml
 signal_root_dir: "D:/github/RobotMeQ_Dataset/QuantData"
 price_root_dir: "D:/github/RobotMeQ_Dataset/QuantData/live"
+index_price_csv_path: "D:/github/RobotMeQ_Dataset/QuantData/live_index/live_bar_A_000001_d.csv"
+index_condition_csv_path: "D:/github/RobotMeQ_Dataset/QuantData/market_condition_live/A_000001_d.csv"
+stock_name_csv_path: "D:/github/RobotMeQ_Dataset/QuantData/asset_code/a800_stocks.csv"
 ```
 
 也可通过环境变量覆盖：
@@ -109,6 +122,15 @@ CSV 列: `time, open, high, low, close, volume`
 
 平台通过内置 `fuzzy()` 算法实时从行情数据计算 avmood 指标，无需额外配置文件。
 
+### 股票代码-名称映射
+
+股票名称映射文件配置在 `stock_name_csv_path`，CSV 包含以下列：
+- `ipodate`: 上市日期
+- `code`: 股票代码（带市场前缀，如 `sh.600000`、`sz.000027`）
+- `code_name`: 股票中文名称（如 `浦发银行`、`深圳能源`）
+
+平台会自动去除市场前缀并建立代码→名称的映射，在前端表格和详情页中同时显示代码与名称。
+
 ## 如何新增策略
 
 1. 创建策略信号 CSV 目录: `{signal_root_dir}/trade_point_live_inference_{新策略名}/`
@@ -141,6 +163,9 @@ registry.register(MyNewAdapter(config))
 |--------|--------|------|
 | signal_root_dir | (必填) | 策略信号数据根目录 |
 | price_root_dir | (必填) | 历史行情数据根目录 |
+| index_price_csv_path | (必填) | 指数行情 CSV 文件路径（用于市场行情分类页面） |
+| index_condition_csv_path | (必填) | 指数行情分类 CSV 文件路径（用于市场行情分类页面） |
+| stock_name_csv_path | (必填) | 股票代码-名称映射 CSV（用于前端显示股票名称） |
 | output_dir | ./output | 报表导出目录 |
 | default_strategy_list | [] | 默认加载的策略列表 |
 | default_market | A | 默认市场 |

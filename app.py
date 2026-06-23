@@ -5,10 +5,11 @@ Main Streamlit application entry point.
 Usage:
     streamlit run app.py
 
-The app provides:
-- Home page: Strategy overview list
-- Strategy page: Browse stocks for a strategy
-- Stock detail page: Interactive charts with signals, MAs, MACD, and position info
+Pages:
+- 首页: Platform introduction (strategies & AI market condition)
+- 策略详情: Browse traded assets for a strategy, click row to enter asset detail
+- 资产详情: Interactive K-line chart with signals, MAs, MACD, and trade history
+- 行情分类: AI market condition classification (trend up / down / range)
 """
 
 import sys
@@ -63,20 +64,128 @@ def init_app():
 
 config, registry = init_app()
 
+
+# ============================================================
+# Stock Name Mapping
+# ============================================================
+@st.cache_data
+def load_stock_name_map() -> dict:
+    """Load stock code → stock name mapping from the configured CSV.
+
+    The CSV is expected to have columns: ipodate, code, code_name.
+    The 'code' column uses format like 'sh.600000' — the prefix is
+    stripped so the returned dict maps bare numeric codes to names.
+    """
+    csv_path = config.stock_name_csv_path
+    if not csv_path or not Path(csv_path).exists():
+        return {}
+
+    try:
+        df = pd.read_csv(csv_path)
+        mapping: dict[str, str] = {}
+        for _, row in df.iterrows():
+            raw_code = str(row["code"]).strip()
+            # Strip market prefix: "sh.600000" → "600000"
+            if "." in raw_code:
+                raw_code = raw_code.split(".", 1)[1]
+            mapping[raw_code] = str(row["code_name"]).strip()
+        return mapping
+    except Exception:
+        return {}
+
+
+def get_stock_display(code: str, name_map: dict) -> str:
+    """Return display string for a stock code, with name if available."""
+    name = name_map.get(code, "")
+    if not name:
+        name = _FALLBACK_STOCK_NAMES.get(code, "")
+    if name:
+        return f"{code}  {name}"
+    return code
+
+
+# Fallback names for ETFs / index funds not in a800_stocks.csv
+_FALLBACK_STOCK_NAMES: dict[str, str] = {
+    "513030": "德国",
+    "159329": "沙特",
+    "159100": "巴西",
+    "164824": "印度",
+    "513880": "日经225",
+    "159509": "纳指科技",
+    "513290": "纳指生物科技",
+    "159518": "标普油气",
+    "162415": "美国消费",
+    "513730": "东南亚科技",
+    "513310": "中韩半导体",
+    "501225": "全球芯片",
+    "513050": "中概互联网",
+    "159131": "港股信息技术",
+    "513120": "港股创新药",
+    "520600": "港股汽车",
+    "513950": "恒生红利",
+    "513970": "恒生消费",
+    "513090": "香港证券",
+    "513360": "教育",
+    "159985": "豆粕",
+    "159980": "有色",
+    "518880": "黄金",
+    "161226": "白银",
+    "161129": "原油",
+    "163208": "全球油气能源",
+    "159981": "能源化工",
+    "159915": "创业板",
+    "510300": "沪深300指数",
+    "563300": "中证2000指数",
+    "588000": "科创50",
+    "512690": "酒",
+    "510880": "红利",
+    "512880": "证券",
+    "159870": "化工",
+    "560080": "中药",
+    "563010": "电信",
+    "159852": "软件",
+    "159995": "芯片",
+    "512980": "传媒",
+    "159855": "影视",
+    "561360": "石油",
+    "516910": "物流",
+    "159755": "电池",
+    "515790": "光伏",
+    "516970": "基建",
+    "512660": "军工",
+    "159611": "电力",
+    "512170": "医疗",
+    "512800": "银行",
+    "515220": "煤炭",
+    "159766": "旅游",
+    "159865": "养殖",
+    "159698": "粮食",
+    "159996": "家电",
+    "159869": "游戏",
+    "515880": "通信",
+    "562500": "机器人",
+    "512200": "房地产",
+    "159326": "电网设备",
+    "512400": "有色金属",
+    "159227": "航空航天",
+    "560280": "工程机械",
+    "159667": "工业母机",
+    "159819": "人工智能",
+    "588760": "科创人工智能",
+}
+
 # ============================================================
 # Sidebar Navigation
 # ============================================================
 st.sidebar.title("📊 Quant-UI")
 st.sidebar.caption("策略可视化平台")
 
-# Navigation
-page = st.sidebar.radio(
-    "导航",
-    ["🏠 首页", "📈 策略详情", "📋 股票详情"],
-    label_visibility="collapsed",
-)
+# --- Navigation buttons ---
+if st.sidebar.button("🏠 首页", use_container_width=True, key="nav_home"):
+    st.session_state["page"] = "🏠 首页"
+    st.rerun()
 
-# Strategy selector in sidebar
+# Strategy selector
 strategy_names = registry.list_names()
 strategy_displays = {
     name: registry.get(name).display_name for name in strategy_names
@@ -84,16 +193,29 @@ strategy_displays = {
 
 if strategy_names:
     selected_strategy = st.sidebar.selectbox(
-        "选择策略",
+        "📈 策略选择",
         options=strategy_names,
         format_func=lambda x: strategy_displays.get(x, x),
         key="sidebar_strategy",
     )
+
+    # Auto-navigate to strategy detail when the dropdown changes
+    if "prev_sidebar_strategy" not in st.session_state:
+        st.session_state["prev_sidebar_strategy"] = selected_strategy
+
+    if selected_strategy != st.session_state["prev_sidebar_strategy"]:
+        st.session_state["prev_sidebar_strategy"] = selected_strategy
+        st.session_state["page"] = "📈 策略详情"
+        st.rerun()
 else:
     st.sidebar.warning("没有已注册的策略")
     selected_strategy = None
 
-# Signal filter options
+if st.sidebar.button("🤖 行情分类", use_container_width=True, key="nav_condition"):
+    st.session_state["page"] = "🤖 行情分类"
+    st.rerun()
+
+# --- Filters ---
 st.sidebar.markdown("---")
 show_only_effective = st.sidebar.checkbox(
     "仅显示有效信号",
@@ -111,7 +233,7 @@ market_filter = st.sidebar.selectbox("市场", ["A"], disabled=True)
 level_filter = st.sidebar.selectbox("级别", ["d", "w", "15", "30", "60"], index=0)
 
 st.sidebar.markdown("---")
-st.sidebar.caption(f"Quant-UI v1.0.0")
+st.sidebar.caption("Quant-UI v1.0.0")
 if st.sidebar.button("🔄 刷新数据"):
     st.cache_data.clear()
     st.rerun()
@@ -121,70 +243,57 @@ if st.sidebar.button("🔄 刷新数据"):
 # Page: Home
 # ============================================================
 def render_home():
-    """Render the home page with strategy overview."""
-    st.title("🏠 策略概览")
-    st.markdown("股票策略可视化平台 — 多策略、多股票、交互式图表")
+    """Render the home page — platform introduction."""
+    st.title("🏠 欢迎使用 Quant-UI")
+    st.markdown("### 量化交易策略可视化平台")
 
     st.markdown("---")
 
-    if not strategy_names:
-        st.warning("没有已注册的策略。请检查 config.yaml 中的 default_strategy_list。")
-        return
+    col1, col2 = st.columns(2, gap="large")
 
-    # Strategy cards
-    for name in strategy_names:
-        adapter = registry.get(name)
-        if adapter is None:
-            continue
-
+    with col1:
         with st.container(border=True):
-            st.subheader(f"📈 {adapter.display_name}")
-            st.caption(adapter.description)
+            st.subheader("📈 策略交易")
+            st.markdown(
+                "基于**深度时间序列模型**（Transformer / TCN / NBeats 等）"
+                "对金融资产价格进行推理，生成高胜率买卖信号。"
+            )
+            st.markdown("- 多策略并行，插件化架构，轻松扩展")
+            st.markdown("- 完整买卖信号配对与收益归因分析")
+            st.markdown("- 交互式 K 线图表，集成 MA / MACD / ATR 等技术指标")
+            st.markdown("- 实时持仓管理与 ATR 动态止损监控")
+            if strategy_names:
+                st.caption(
+                    f"已注册策略: **{', '.join(strategy_displays.values())}**"
+                )
 
-            try:
-                # Load signals to compute summary
-                signals = adapter.load_signals()
-                stocks = sorted(set(s.stock_code for s in signals))
-                buy_sigs = [s for s in signals if s.is_buy]
-                sell_sigs = [s for s in signals if s.is_sell]
+    with col2:
+        with st.container(border=True):
+            st.subheader("🤖 AI 行情分类")
+            st.markdown(
+                "基于**深度学习模型**实时识别指数行情状态，"
+                "将市场划分为趋势上涨、趋势下跌、震荡三种模式。"
+            )
+            st.markdown("- 端到端深度分类模型，每日自动推理")
+            st.markdown("- 分类结果叠加 K 线蜡烛图，直观展示市场结构")
+            st.markdown("- 模型分类概率与置信度量化评估")
+            st.markdown("- 支持收盘价走势与 AI 分类标注叠加分析")
+            st.caption("标的: **上证指数 (000001)**")
 
-                # Basic stats
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("覆盖股票", len(stocks))
-                with col2:
-                    st.metric("交易信号总数", len(signals))
-                with col3:
-                    st.metric("买入信号", len(buy_sigs))
-                with col4:
-                    st.metric("卖出信号", len(sell_sigs))
+    st.markdown("---")
 
-                # Sample stocks
-                if stocks:
-                    sample_stocks = stocks[:5]
-                    st.caption(f"示例股票: {', '.join(sample_stocks)}"
-                               + (f" ... 等{len(stocks)}只" if len(stocks) > 5 else ""))
-
-                # Click to explore
-                if st.button(f"查看 {adapter.display_name} 详情 →", key=f"goto_{name}"):
-                    st.session_state["page"] = "📈 策略详情"
-                    st.session_state["selected_strategy"] = name
-                    st.rerun()
-
-            except Exception as e:
-                st.error(f"加载策略 '{name}' 失败: {e}")
-
-            st.markdown("---")
-
-    # ---- AI 指数行情分类模块 ----
-    render_index_condition_section()
+    st.markdown("### 🚀 快速开始")
+    st.markdown(
+        "在左侧边栏选择 **策略** 查看交易资产列表，"
+        "或点击 **行情分类** 查看 AI 市场状态识别结果。"
+    )
 
 
 # ============================================================
 # Page: Strategy Detail
 # ============================================================
 def render_strategy_detail():
-    """Render the strategy detail page with stock list."""
+    """Render the strategy detail page with a clickable asset list."""
     st.title("📈 策略详情")
 
     if selected_strategy is None:
@@ -276,6 +385,9 @@ def render_strategy_detail():
             closed_trades[-1].exit_price if closed_trades else None
         )
 
+        # Latest trade date
+        last_date = stock_signals[-1].time.strftime("%Y-%m-%d") if stock_signals else "—"
+
         stock_data.append({
             "code": stock_code,
             "is_holding": is_holding,
@@ -284,6 +396,7 @@ def render_strategy_detail():
             "current_price": current_price,
             "signal_count": len(stock_signals),
             "trade_count": len(closed_trades) + (1 if is_holding else 0),
+            "last_date": last_date,
         })
 
     # Apply status filter
@@ -292,64 +405,109 @@ def render_strategy_detail():
     elif status_filter == "已清仓":
         stock_data = [s for s in stock_data if not s["is_holding"]]
 
-    # Render stock table
-    rows = []
+    # ---- Sort state ----
+    sort_key = f"sort_{selected_strategy}"
+    if sort_key not in st.session_state:
+        st.session_state[sort_key] = {"col": None, "asc": True}
+
+    def _toggle_sort(col: str):
+        s = st.session_state[sort_key]
+        if s["col"] == col:
+            s["asc"] = not s["asc"]
+        else:
+            s["col"] = col
+            s["asc"] = True
+
+    def _sort_arrow(col: str) -> str:
+        s = st.session_state[sort_key]
+        if s["col"] != col:
+            return "  ↕"
+        return "  ▲" if s["asc"] else "  ▼"
+
+    # Apply sort
+    s = st.session_state[sort_key]
+    if s["col"]:
+        reverse = not s["asc"]
+        key_map = {
+            "code":    lambda d: d["code"],
+            "date":    lambda d: d["last_date"] or "0000-00-00",
+            "entry":   lambda d: d["entry_price"] or -1e9,
+            "current": lambda d: d["current_price"] or -1e9,
+            "pnl":     lambda d: d["pnl_pct"] if d["pnl_pct"] is not None else -1e9,
+        }
+        sort_fn = key_map.get(s["col"])
+        if sort_fn:
+            stock_data.sort(key=sort_fn, reverse=reverse)
+
+    # ---- Render table ----
+    stock_name_map = load_stock_name_map()
+
+    st.caption("💡 点击 **股票代码** 进入资产详情 | 点击带 ↕ 的列名排序")
+
+    col_weights = [0.25, 0.55, 0.7, 0.8, 0.4, 0.4, 0.6, 0.6, 0.6]
+
+    # Header
+    hdr = st.columns(col_weights)
+    hdr[0].markdown("**状态**")
+    if hdr[1].button(f"**股票代码**{_sort_arrow('code')}", key="sort_code", type="tertiary"):
+        _toggle_sort("code"); st.rerun()
+    hdr[2].markdown("**股票名称**")
+    if hdr[3].button(f"**交易日期**{_sort_arrow('date')}", key="sort_date", type="tertiary"):
+        _toggle_sort("date"); st.rerun()
+    hdr[4].markdown("**信号**")
+    hdr[5].markdown("**交易**")
+    if hdr[6].button(f"**入场价**{_sort_arrow('entry')}", key="sort_entry", type="tertiary"):
+        _toggle_sort("entry"); st.rerun()
+    if hdr[7].button(f"**当前价**{_sort_arrow('current')}", key="sort_current", type="tertiary"):
+        _toggle_sort("current"); st.rerun()
+    if hdr[8].button(f"**收益率**{_sort_arrow('pnl')}", key="sort_pnl", type="tertiary"):
+        _toggle_sort("pnl"); st.rerun()
+
+    st.markdown("---")
+
+    # Rows
     for sd in stock_data:
         code = sd["code"]
+        stock_name = stock_name_map.get(code, "") or _FALLBACK_STOCK_NAMES.get(code, "")
         holding_icon = "📈" if sd["is_holding"] else "✅"
-        pnl_str = f"{sd['pnl_pct'] * 100:.2f}%" if sd["pnl_pct"] is not None else "—"
+        pnl_val = sd["pnl_pct"]
+        pnl_str = f"{pnl_val * 100:.2f}%" if pnl_val is not None else "—"
         entry_str = f"{sd['entry_price']:.4f}" if sd["entry_price"] else "—"
         current_str = f"{sd['current_price']:.4f}" if sd["current_price"] else "—"
 
         pnl_display = pnl_str
-        if sd["pnl_pct"] is not None:
-            if sd["pnl_pct"] > 0:
+        if pnl_val is not None:
+            if pnl_val > 0:
                 pnl_display = f"🟢 {pnl_str}"
-            elif sd["pnl_pct"] < 0:
+            elif pnl_val < 0:
                 pnl_display = f"🔴 {pnl_str}"
 
-        rows.append({
-            "状态": holding_icon,
-            "股票代码": code,
-            "信号数": sd["signal_count"],
-            "交易数": sd["trade_count"],
-            "入场价": entry_str,
-            "当前/出场价": current_str,
-            "收益率": pnl_display,
-        })
-
-    # Display as dataframe with clickable stock codes
-    st.dataframe(
-        pd.DataFrame(rows),
-        width="stretch",
-        hide_index=True,
-        column_config={
-            "股票代码": st.column_config.TextColumn("股票代码", width="medium"),
-        },
-    )
-
-    # Stock detail section
-    st.markdown("---")
-    st.subheader("📋 查看单只股票详情")
-
-    selected_stock = st.selectbox(
-        "选择股票代码",
-        options=[s["code"] for s in stock_data],
-        key="strategy_stock_selector",
-    )
-
-    if selected_stock and st.button("查看详情 →", key="goto_stock_detail"):
-        st.session_state["page"] = "📋 股票详情"
-        st.session_state["detail_stock"] = selected_stock
-        st.rerun()
+        row = st.columns(col_weights)
+        row[0].write(holding_icon)
+        if row[1].button(code, key=f"goto_{selected_strategy}_{code}", type="tertiary"):
+            st.session_state["page"] = "📋 资产详情"
+            st.session_state["detail_stock"] = code
+            st.rerun()
+        row[2].write(stock_name or "—")
+        row[3].write(sd["last_date"])
+        row[4].write(str(sd["signal_count"]))
+        row[5].write(str(sd["trade_count"]))
+        row[6].write(entry_str)
+        row[7].write(current_str)
+        row[8].write(pnl_display)
 
 
 # ============================================================
-# Page: Stock Detail
+# Page: Asset Detail
 # ============================================================
 def render_stock_detail():
-    """Render the detailed stock chart page."""
-    st.title("📋 股票详情")
+    """Render the detailed asset chart page with signals, indicators, and trades."""
+    # Back to strategy detail
+    if st.button("← 返回策略详情", key="back_to_strategy"):
+        st.session_state["page"] = "📈 策略详情"
+        st.rerun()
+
+    st.title("📋 资产详情")
 
     if selected_strategy is None:
         st.warning("请从侧边栏选择一个策略。")
@@ -366,14 +524,19 @@ def render_stock_detail():
         st.warning(f"策略 '{selected_strategy}' 没有信号数据。")
         return
 
+    stock_name_map = load_stock_name_map()
+
     # Use session state for stock selection
     default_stock = st.session_state.get("detail_stock", stocks[0] if stocks else "")
 
     col1, col2 = st.columns([1, 3])
     with col1:
+        # Show code + name in selectbox
+        stock_options = {s: get_stock_display(s, stock_name_map) for s in stocks}
         selected_stock = st.selectbox(
-            "选择股票代码",
+            "选择资产",
             options=stocks,
+            format_func=lambda x: stock_options.get(x, x),
             index=stocks.index(default_stock) if default_stock in stocks else 0,
             key="stock_detail_selector",
         )
@@ -436,9 +599,11 @@ def render_stock_detail():
     # Top metrics row
     latest_price = float(price_df["close"].iloc[-1]) if not price_df.empty else 0.0
 
+    stock_display_name = get_stock_display(selected_stock, stock_name_map)
+
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
-        st.metric("股票代码", selected_stock)
+        st.metric("资产", stock_display_name)
     with col2:
         st.metric("策略", adapter.display_name)
     with col3:
@@ -543,20 +708,29 @@ def render_stock_detail():
         st.caption("💡 提示: 使用鼠标滚轮缩放图表，拖拽平移。")
 
 
-# ====================================================Empty signal file========
+# ============================================================
+# Page: Market Condition
+# ============================================================
+def render_market_condition():
+    """Render the AI market condition classification page."""
+    render_index_condition_section()
+
+
+# ============================================================
 # Route to Page
 # ============================================================
 if "page" not in st.session_state:
     st.session_state["page"] = "🏠 首页"
 
-# Check for session redirect
-page = st.session_state.get("page", page)
+current_page = st.session_state["page"]
 
-if page == "🏠 首页":
+if current_page == "🏠 首页":
     render_home()
-elif page == "📈 策略详情":
+elif current_page == "📈 策略详情":
     render_strategy_detail()
-elif page == "📋 股票详情":
+elif current_page == "📋 资产详情":
     render_stock_detail()
+elif current_page == "🤖 行情分类":
+    render_market_condition()
 else:
     render_home()

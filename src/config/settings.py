@@ -28,6 +28,13 @@ class AppConfig:
     price_root_dir: str = ""
     output_dir: str = "./output"
 
+    # Index market condition data paths
+    index_price_csv_path: str = ""
+    index_condition_csv_path: str = ""
+
+    # Stock code-to-name mapping CSV
+    stock_name_csv_path: str = ""
+
     # Strategy
     default_strategy_list: List[str] = field(default_factory=list)
 
@@ -143,6 +150,9 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     cfg.signal_root_dir = _resolve_path(cfg.signal_root_dir)
     cfg.price_root_dir = _resolve_path(cfg.price_root_dir)
     cfg.output_dir = _resolve_path(cfg.output_dir)
+    cfg.index_price_csv_path = _resolve_path(cfg.index_price_csv_path)
+    cfg.index_condition_csv_path = _resolve_path(cfg.index_condition_csv_path)
+    cfg.stock_name_csv_path = _resolve_path(cfg.stock_name_csv_path)
 
     # Override from environment
     cfg = _override_from_env(cfg)
