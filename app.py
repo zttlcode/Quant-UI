@@ -34,6 +34,11 @@ from src.visualizer.components import (
     render_signal_filter_ui,
 )
 from src.visualizer.index_condition_ui import render_index_condition_section
+from src.indicators.risk import (
+    compute_risk_indicators,
+    get_indicator_at_entry,
+    classify_risk_level,
+)
 
 import streamlit as st
 import pandas as pd
@@ -215,17 +220,6 @@ if st.sidebar.button("🤖 行情分类", use_container_width=True, key="nav_con
     st.session_state["page"] = "🤖 行情分类"
     st.rerun()
 
-# --- Filters ---
-st.sidebar.markdown("---")
-show_only_effective = st.sidebar.checkbox(
-    "仅显示有效信号",
-    value=config.show_only_effective_signal,
-    help="只显示 label=1 (有效买入) 和 label=3 (有效卖出) 的信号",
-)
-show_unclosed = st.sidebar.checkbox(
-    "显示未平仓持仓",
-    value=config.show_unclosed_position,
-)
 
 # Market & Level filter
 st.sidebar.markdown("---")
@@ -322,6 +316,12 @@ def render_strategy_detail():
         st.warning("该策略没有交易信号数据。")
         return
 
+    # Load ALL signals (incl. ineffective) for stop-loss display
+    try:
+        all_signals = adapter.load_all_signals()
+    except Exception:
+        all_signals = []  # Graceful fallback if all-signals loading fails
+
     # Build stock summary
     price_loader = PriceLoader(config)
 
@@ -388,6 +388,45 @@ def render_strategy_detail():
         # Latest trade date
         last_date = stock_signals[-1].time.strftime("%Y-%m-%d") if stock_signals else "—"
 
+        # ---- Compute risk indicators ----
+        ret_5d = None
+        atr_pct = None
+        ma_bullish = None
+        avmood_val = None
+        risk_level = "—"
+        risk_warnings = []
+
+        if not price_df.empty and is_holding:
+            # Get entry time of the current position
+            entry_sig = open_pos.entry_signal if open_pos else (
+                stock_signals[-1] if stock_signals else None
+            )
+            if entry_sig is not None:
+                risk_indicators = get_indicator_at_entry(price_df, entry_sig.time)
+                ret_5d = risk_indicators.get("ret_5d")
+                atr_pct = risk_indicators.get("atr_pct")
+                ma_bullish = risk_indicators.get("ma_bullish")
+                avmood_val = risk_indicators.get("avmood")
+                risk_level, _, risk_warnings = classify_risk_level(risk_indicators)
+
+        # ---- Detect stop-loss (ineffective sell signals) ----
+        stop_loss_price = None
+        stop_loss_date = None
+        if all_signals:
+            all_stock_signals = [s for s in all_signals if s.stock_code == stock_code]
+            # Find sell signals whose label is not 3 (有效卖出)
+            # These represent stop-loss / ineffective exits
+            ineffective_sells = [
+                s for s in all_stock_signals
+                if s.is_sell and s.label is not None and s.label != 3
+            ]
+            if ineffective_sells:
+                # Use the most recent ineffective sell as the stop-loss marker
+                ineffective_sells.sort(key=lambda s: s.time)
+                latest_sl = ineffective_sells[-1]
+                stop_loss_price = latest_sl.price
+                stop_loss_date = latest_sl.date_str
+
         stock_data.append({
             "code": stock_code,
             "is_holding": is_holding,
@@ -397,6 +436,16 @@ def render_strategy_detail():
             "signal_count": len(stock_signals),
             "trade_count": len(closed_trades) + (1 if is_holding else 0),
             "last_date": last_date,
+            # Risk indicators
+            "ret_5d": ret_5d,
+            "atr_pct": atr_pct,
+            "ma_bullish": ma_bullish,
+            "avmood": avmood_val,
+            "risk_level": risk_level,
+            "risk_warnings": risk_warnings,
+            # Stop-loss info (from ineffective sell signals)
+            "stop_loss_price": stop_loss_price,
+            "stop_loss_date": stop_loss_date,
         })
 
     # Apply status filter
@@ -434,6 +483,9 @@ def render_strategy_detail():
             "entry":   lambda d: d["entry_price"] or -1e9,
             "current": lambda d: d["current_price"] or -1e9,
             "pnl":     lambda d: d["pnl_pct"] if d["pnl_pct"] is not None else -1e9,
+            "ret5d":   lambda d: d["ret_5d"] if d["ret_5d"] is not None else -1e9,
+            "atr":     lambda d: d["atr_pct"] if d["atr_pct"] is not None else -1e9,
+            "avmood":  lambda d: d["avmood"] if d["avmood"] is not None else -1e9,
         }
         sort_fn = key_map.get(s["col"])
         if sort_fn:
@@ -442,26 +494,35 @@ def render_strategy_detail():
     # ---- Render table ----
     stock_name_map = load_stock_name_map()
 
-    st.caption("💡 点击 **股票代码** 进入资产详情 | 点击带 ↕ 的列名排序")
+    st.caption("💡 点击 **股票代码** 进入资产详情 | 点击带 ↕ 的列名排序 | 🔴=高风险 ⚡=中风险 | ⚠️=已止损")
 
-    col_weights = [0.25, 0.55, 0.7, 0.8, 0.4, 0.4, 0.6, 0.6, 0.6]
+    col_weights = [0.2, 0.45, 0.55, 0.6, 0.35, 0.35, 0.5, 0.5, 0.5, 0.5, 0.45, 0.4, 0.35, 0.4]
 
     # Header
     hdr = st.columns(col_weights)
     hdr[0].markdown("**状态**")
-    if hdr[1].button(f"**股票代码**{_sort_arrow('code')}", key="sort_code", type="tertiary"):
+    if hdr[1].button(f"**代码**{_sort_arrow('code')}", key="sort_code", type="tertiary"):
         _toggle_sort("code"); st.rerun()
-    hdr[2].markdown("**股票名称**")
-    if hdr[3].button(f"**交易日期**{_sort_arrow('date')}", key="sort_date", type="tertiary"):
+    hdr[2].markdown("**名称**")
+    if hdr[3].button(f"**日期**{_sort_arrow('date')}", key="sort_date", type="tertiary"):
         _toggle_sort("date"); st.rerun()
-    hdr[4].markdown("**信号**")
-    hdr[5].markdown("**交易**")
-    if hdr[6].button(f"**入场价**{_sort_arrow('entry')}", key="sort_entry", type="tertiary"):
+    if hdr[4].button(f"**入场价**{_sort_arrow('entry')}", key="sort_entry", type="tertiary"):
         _toggle_sort("entry"); st.rerun()
-    if hdr[7].button(f"**当前价**{_sort_arrow('current')}", key="sort_current", type="tertiary"):
+    if hdr[5].button(f"**当前价**{_sort_arrow('current')}", key="sort_current", type="tertiary"):
         _toggle_sort("current"); st.rerun()
-    if hdr[8].button(f"**收益率**{_sort_arrow('pnl')}", key="sort_pnl", type="tertiary"):
+    hdr[6].markdown("**止损**")
+    if hdr[7].button(f"**收益**{_sort_arrow('pnl')}", key="sort_pnl", type="tertiary"):
         _toggle_sort("pnl"); st.rerun()
+    # Risk columns
+    if hdr[8].button(f"**前5日%**{_sort_arrow('ret5d')}", key="sort_ret5d", type="tertiary"):
+        _toggle_sort("ret5d"); st.rerun()
+    if hdr[9].button(f"**ATR%**{_sort_arrow('atr')}", key="sort_atr", type="tertiary"):
+        _toggle_sort("atr"); st.rerun()
+    hdr[10].markdown("**MA排列**")
+    if hdr[11].button(f"**avmood**{_sort_arrow('avmood')}", key="sort_avmood", type="tertiary"):
+        _toggle_sort("avmood"); st.rerun()
+    hdr[12].markdown("**风险**")
+    hdr[13].markdown("**信号/交易**")
 
     st.markdown("---")
 
@@ -482,6 +543,69 @@ def render_strategy_detail():
             elif pnl_val < 0:
                 pnl_display = f"🔴 {pnl_str}"
 
+        # Risk indicator display strings with color coding
+        ret_5d_val = sd.get("ret_5d")
+        if ret_5d_val is not None:
+            if ret_5d_val > 15:
+                ret_5d_str = f"🔴 {ret_5d_val:+.1f}%"
+            elif ret_5d_val > 10:
+                ret_5d_str = f"🟡 {ret_5d_val:+.1f}%"
+            else:
+                ret_5d_str = f"{ret_5d_val:+.1f}%"
+        else:
+            ret_5d_str = "—"
+
+        atr_val = sd.get("atr_pct")
+        if atr_val is not None:
+            if atr_val > 6:
+                atr_str = f"🔴 {atr_val:.1f}%"
+            elif atr_val > 4:
+                atr_str = f"🟡 {atr_val:.1f}%"
+            else:
+                atr_str = f"{atr_val:.1f}%"
+        else:
+            atr_str = "—"
+
+        ma_val = sd.get("ma_bullish")
+        if ma_val is not None:
+            if ma_val == 1:
+                ma_str = "✅ 多头"
+            else:
+                ma_str = "🔴 空头"
+        else:
+            ma_str = "—"
+
+        avmood_val = sd.get("avmood")
+        if avmood_val is not None:
+            if avmood_val > 0.03:
+                avmood_str = f"🟢 {avmood_val:.4f}"
+            elif avmood_val > 0:
+                avmood_str = f"🟡 {avmood_val:.4f}"
+            else:
+                avmood_str = f"🔴 {avmood_val:.4f}"
+        else:
+            avmood_str = "—"
+
+        risk_level = sd.get("risk_level", "—")
+        if risk_level == "高风险":
+            risk_display = "🔴 高"
+        elif risk_level == "中风险":
+            risk_display = "🟡 中"
+        elif risk_level == "低风险":
+            risk_display = "🟢 低"
+        else:
+            risk_display = "—"
+
+        sig_trade_str = f"{sd['signal_count']}/{sd['trade_count']}"
+
+        # Stop-loss display
+        sl_price = sd.get("stop_loss_price")
+        sl_date = sd.get("stop_loss_date")
+        if sl_price is not None:
+            sl_display = f"⚠️ 已止损\n{sl_price:.4f}\n{sl_date}"
+        else:
+            sl_display = "—"
+
         row = st.columns(col_weights)
         row[0].write(holding_icon)
         if row[1].button(code, key=f"goto_{selected_strategy}_{code}", type="tertiary"):
@@ -490,11 +614,23 @@ def render_strategy_detail():
             st.rerun()
         row[2].write(stock_name or "—")
         row[3].write(sd["last_date"])
-        row[4].write(str(sd["signal_count"]))
-        row[5].write(str(sd["trade_count"]))
-        row[6].write(entry_str)
-        row[7].write(current_str)
-        row[8].write(pnl_display)
+        row[4].write(entry_str)
+        row[5].write(current_str)
+        row[6].write(sl_display)
+        row[7].write(pnl_display)
+        row[8].write(ret_5d_str)
+        row[9].write(atr_str)
+        row[10].write(ma_str)
+        row[11].write(avmood_str)
+        row[12].write(risk_display)
+        row[13].write(sig_trade_str)
+
+        # Show risk warnings as tooltip/expandable if any
+        if sd.get("risk_warnings"):
+            with row[12]:
+                with st.expander("详", expanded=False):
+                    for w in sd["risk_warnings"]:
+                        st.caption(w)
 
 
 # ============================================================
@@ -675,7 +811,6 @@ def render_stock_detail():
         open_position=open_position if filter_opts["show_unclosed"] else None,
         extra_data=extra_data,
         extra_label=extra_label,
-        show_only_effective=filter_opts["show_only_effective"],
         title=title,
     )
 

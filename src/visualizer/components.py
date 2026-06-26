@@ -225,21 +225,14 @@ def render_signal_filter_ui(key_prefix: str = "") -> dict:
     Returns:
         Dict with filter parameters.
     """
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
-        show_effective = st.checkbox(
-            "仅显示有效信号 (label 1/3)",
-            value=False,
-            key=f"{key_prefix}_effective",
-            help="勾选后只显示 label=1(buy) 和 label=3(sell) 的信号",
-        )
-    with col2:
         show_open = st.checkbox(
             "显示未平仓持仓",
             value=True,
             key=f"{key_prefix}_open",
         )
-    with col3:
+    with col2:
         show_volume = st.checkbox(
             "显示成交量",
             value=False,
@@ -247,7 +240,6 @@ def render_signal_filter_ui(key_prefix: str = "") -> dict:
         )
 
     return {
-        "show_only_effective": show_effective,
         "show_unclosed": show_open,
         "show_volume": show_volume,
     }

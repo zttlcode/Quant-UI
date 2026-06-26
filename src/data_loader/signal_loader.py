@@ -163,6 +163,7 @@ class SignalLoader:
         market: str,
         level: str,
         strategy_name: str,
+        filter_ineffective: bool = True,
     ) -> List[TradeSignal]:
         """Parse a DataFrame of signals into TradeSignal objects.
 
@@ -170,11 +171,19 @@ class SignalLoader:
         - Time parsing and validation
         - Signal type coercion
         - Label parsing (optional)
+        - Signal-label cross-validation (when filter_ineffective=True):
+            buy  → only label=1 (有效买入) kept
+            sell → only label=3 (有效卖出) kept
+            All other combinations (label=2/4, or mismatches like
+            buy+label=3, sell+label=1) are discarded as invalid.
+          When filter_ineffective=False, all signals are kept regardless
+          of label, making ineffective signals available for frontend
+          display (e.g. stop-loss markers).
         - Prob parsing (optional)
         - Data cleaning (NaN handling, type conversion)
-        - Deduplication by date
         """
         signals: List[TradeSignal] = []
+        filtered_ineffective = 0
 
         for idx, row in df.iterrows():
             try:
@@ -228,6 +237,37 @@ class SignalLoader:
                                 idx, stock_code, label_val,
                             )
 
+                # Validate signal-label consistency.
+                # Rules:
+                #   buy  signal → only label=1 (有效买入) is valid
+                #   sell signal → only label=3 (有效卖出) is valid
+                # Everything else (label=2/4, or mismatched signal+label like
+                # buy+label=3, sell+label=1) is invalid.
+                # When filter_ineffective=False, all signals are kept and made
+                # available for frontend display (e.g. stop-loss markers).
+                if label is not None:
+                    is_valid = (
+                        (signal == SignalType.BUY and label == LabelType.EFFECTIVE_BUY) or
+                        (signal == SignalType.SELL and label == LabelType.EFFECTIVE_SELL)
+                    )
+                    if not is_valid:
+                        if filter_ineffective:
+                            filtered_ineffective += 1
+                            logger.warning(
+                                "Row %d in %s: invalid signal-label combination "
+                                "(signal=%s, label=%d=%s), discarding",
+                                idx, stock_code,
+                                signal.value, label.value, label.description,
+                            )
+                            continue
+                        else:
+                            logger.debug(
+                                "Row %d in %s: ineffective signal kept for display "
+                                "(signal=%s, label=%d=%s)",
+                                idx, stock_code,
+                                signal.value, label.value, label.description,
+                            )
+
                 # Parse prob (optional)
                 prob = None
                 if "prob" in df.columns:
@@ -260,6 +300,12 @@ class SignalLoader:
                     idx, stock_code, e,
                 )
                 continue
+
+        if filtered_ineffective > 0:
+            logger.info(
+                "  %s: filtered %d ineffective signals (label=2,4), kept %d effective",
+                stock_code, filtered_ineffective, len(signals),
+            )
 
         return signals
 
@@ -380,6 +426,79 @@ class SignalLoader:
             len(set(s.stock_code for s in deduped)),
         )
 
+        return deduped
+
+    def load_strategy_signals_all(self, strategy_name: str) -> List[TradeSignal]:
+        """Load ALL trade signals for a strategy, including ineffective ones.
+
+        Unlike load_strategy_signals(), this keeps signals with label=2/4
+        (ineffective buy/sell) so the frontend can display stop-loss markers
+        and other auxiliary information. These signals are not meant to be
+        used for trade pairing — use load_strategy_signals() for that.
+
+        Args:
+            strategy_name: Name of the strategy (e.g., 'fuzzy_ma').
+
+        Returns:
+            List of TradeSignal objects including ineffective ones,
+            sorted by time and deduplicated.
+        """
+        signal_dir = self._get_strategy_dir(strategy_name)
+        logger.info(
+            "Loading ALL signals (incl. ineffective) for strategy '%s' from: %s",
+            strategy_name, signal_dir,
+        )
+
+        csv_files = scan_csv_files(str(signal_dir), "*.csv")
+        if not csv_files:
+            logger.warning("No CSV files found in: %s", signal_dir)
+            return []
+
+        all_signals: List[TradeSignal] = []
+        missing_info_files: List[Path] = []
+
+        for filepath in csv_files:
+            parsed = parse_filename(filepath.name, pattern_type="signal")
+            if parsed is None:
+                logger.warning("Cannot parse filename: %s, skipping", filepath.name)
+                missing_info_files.append(filepath)
+                continue
+
+            market = parsed["market"]
+            stock_code = parsed["code"]
+            level = parsed["level"]
+
+            try:
+                df = self._read_signal_csv(filepath)
+                if df.empty:
+                    continue
+
+                signals = self._parse_signals(
+                    df, stock_code, market, level, strategy_name,
+                    filter_ineffective=False,
+                )
+                if signals:
+                    all_signals.extend(signals)
+                    logger.info(
+                        "  %s: parsed %d signals (incl. ineffective) (market=%s, level=%s)",
+                        stock_code, len(signals), market, level,
+                    )
+            except Exception as e:
+                logger.error("Error loading %s: %s", filepath.name, e)
+                continue
+
+        if missing_info_files:
+            logger.warning(
+                "%d files could not be parsed for market/code/level: %s",
+                len(missing_info_files),
+                [f.name for f in missing_info_files],
+            )
+
+        deduped = self._deduplicate_signals(all_signals)
+        logger.info(
+            "Loaded %d signals (%d after dedup, incl. ineffective) for strategy '%s'",
+            len(all_signals), len(deduped), strategy_name,
+        )
         return deduped
 
     def load_stock_signals(

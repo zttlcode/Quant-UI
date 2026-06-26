@@ -209,17 +209,14 @@ class FuzzyMAExtraDataLoader(StrategyExtraDataLoader):
         # Run fuzzy inference
         n1, n2, aa = fuzzy(price_df)
 
-        # Compute mood = a1 - a0
-        mood = np.full(n, np.nan, dtype=float)
-        for k in range(n):
-            a0 = aa[0, 0, k]
-            a1 = aa[1, 0, k]
-            mood[k] = a1 - a0
+        # Compute mood = a1 - a0 (vectorized)
+        mood = aa[1, 0, :] - aa[0, 0, :]
+        mood = np.asarray(mood, dtype=float)
 
-        # Compute avmood = 5-period rolling mean of mood
+        # Compute avmood = rolling mean of previous 5 moods (excludes current bar)
         avmood = np.full(n, np.nan, dtype=float)
-        for k in range(5, n):
-            avmood[k] = np.nanmean(mood[k - 4 : k + 1])
+        for k in range(9, n):
+            avmood[k] = np.mean(mood[k - 5 : k])
 
         # Detect zero-crossings
         avmood_cross = np.zeros(n, dtype=int)

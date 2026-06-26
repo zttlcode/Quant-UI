@@ -60,19 +60,17 @@ class ChartBuilder:
         open_position: Optional[TradePair] = None,
         extra_data: Optional[pd.DataFrame] = None,
         extra_label: str = "",
-        show_only_effective: bool = False,
         title: str = "",
     ) -> go.Figure:
         """Build the complete multi-panel chart.
 
         Args:
             price_df: OHLCV data indexed by time.
-            signals: List of trade signals.
+            signals: List of trade signals (label 2/4 already filtered at load time).
             trades: List of completed trades.
             open_position: Current open position (if any).
             extra_data: Strategy-specific extra indicator data.
             extra_label: Label for the extra data subplot.
-            show_only_effective: If True, only show effective signals.
             title: Chart title.
 
         Returns:
@@ -99,7 +97,7 @@ class ChartBuilder:
         # Panel 1: Candlestick + MAs + Trade Markers
         self._add_candlestick(fig, price_df, row=1)
         self._add_moving_averages(fig, price_df, row=1)
-        self._add_trade_markers(fig, price_df, signals, trades, open_position, show_only_effective, row=1)
+        self._add_trade_markers(fig, price_df, signals, trades, open_position, row=1)
         self._add_stop_loss_line(fig, price_df, open_position, row=1)
 
         # Panel 2: MACD
@@ -204,10 +202,13 @@ class ChartBuilder:
         signals: List[TradeSignal],
         trades: List[TradePair],
         open_position: Optional[TradePair],
-        show_only_effective: bool,
         row: int = 1,
     ):
-        """Add buy/sell markers on the main chart."""
+        """Add buy/sell markers on the main chart.
+
+        Note: Ineffective signals (label=2/4) are filtered at load time
+        by SignalLoader, so all signals here are guaranteed effective.
+        """
         if price_df.empty:
             return
 
@@ -218,21 +219,16 @@ class ChartBuilder:
         # From closed trades
         for trade in trades:
             entry = trade.entry_signal
-            if show_only_effective and not entry.is_effective:
-                continue
             self._add_signal_marker(buy_markers, entry, price_df, "buy")
 
             if trade.exit_signal:
                 ext = trade.exit_signal
-                if show_only_effective and not ext.is_effective:
-                    continue
                 self._add_signal_marker(sell_markers, ext, price_df, "sell")
 
         # Open position
         if open_position:
             entry = open_position.entry_signal
-            if not show_only_effective or entry.is_effective:
-                self._add_signal_marker(buy_markers, entry, price_df, "buy")
+            self._add_signal_marker(buy_markers, entry, price_df, "buy")
 
         # Unmatched signals
         used_times = set()
@@ -245,8 +241,6 @@ class ChartBuilder:
 
         for sig in signals:
             if sig.time not in used_times:
-                if show_only_effective and not sig.is_effective:
-                    continue
                 if sig.is_buy:
                     self._add_signal_marker(buy_markers, sig, price_df, "buy")
                 else:

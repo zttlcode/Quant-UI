@@ -31,8 +31,9 @@ default_market: "A"
 default_level: "d"
 
 # --- Signal Display Options ---
-# If true, only show effective signals (label 1=buy, 3=sell)
-# If false, show all signals regardless of label
+# DEPRECATED: As of 2025-06, label=2 (无效买入) and label=4 (无效卖出) signals are
+# always filtered out at load time by SignalLoader. This option is now a no-op
+# kept for backward compatibility with existing config files.
 show_only_effective_signal: true
 
 # --- Position Options ---

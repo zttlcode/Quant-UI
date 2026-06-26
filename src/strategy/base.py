@@ -66,11 +66,20 @@ class BaseStrategyAdapter(ABC):
         return self._extra_loader
 
     def load_signals(self) -> List[TradeSignal]:
-        """Load all trade signals for this strategy."""
+        """Load all trade signals for this strategy (effective only)."""
         return self._signal_loader.load_strategy_signals(self.strategy_name)
 
+    def load_all_signals(self) -> List[TradeSignal]:
+        """Load ALL trade signals including ineffective ones.
+
+        Ineffective signals (label=2/4) are kept for frontend display
+        purposes (e.g. stop-loss markers). Do NOT use these for trade
+        pairing — use load_signals() for that.
+        """
+        return self._signal_loader.load_strategy_signals_all(self.strategy_name)
+
     def load_stock_signals(self, stock_code: str) -> List[TradeSignal]:
-        """Load signals for a specific stock."""
+        """Load signals for a specific stock (effective only)."""
         return self._signal_loader.load_stock_signals(self.strategy_name, stock_code)
 
     def get_stock_list(self) -> List[str]:

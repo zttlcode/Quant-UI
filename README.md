@@ -170,7 +170,7 @@ registry.register(MyNewAdapter(config))
 | default_strategy_list | [] | 默认加载的策略列表 |
 | default_market | A | 默认市场 |
 | default_level | d | 默认时间级别 |
-| show_only_effective_signal | false | 是否仅显示有效信号 |
+| show_only_effective_signal | false | 已废弃：label=2/4 信号在加载时自动过滤 |
 | hold_stop_atr_multiplier | 1.0 | 止损 ATR 倍数 |
 | commission | 0.0 | 手续费 |
 | slippage | 0.0 | 滑点 |
