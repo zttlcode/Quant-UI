@@ -71,7 +71,7 @@ export default function AboutPage() {
             { category: 'Frontend', items: ['Next.js 14', 'React 18', 'Tailwind CSS', 'Three.js'] },
             { category: 'Visualization', items: ['ECharts', 'Recharts', 'React Three Fiber', 'tsParticles'] },
             { category: 'AI / ML', items: ['TimesNet', 'PyTorch', 'Meta-labeling', 'Bayesian Opt'] },
-            { category: 'Backend', items: ['Python', 'Pandas', 'Plotly', 'Streamlit'] },
+            { category: 'Backend', items: ['Python', 'Starlette', 'Pandas', 'Plotly'] },
           ].map((stack) => (
             <div key={stack.category}>
               <p className="text-xs font-mono text-quant-cyan mb-2 tracking-wider">{stack.category}</p>

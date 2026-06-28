@@ -21,7 +21,9 @@ npm run lint     # Run ESLint
 ```
 
 ### Python Backend
-No formal build/test commands exist. The Python engine is run as scripts (entry points likely via Streamlit or direct invocation). Key dependencies: `pandas`, `numpy`, `plotly`, `pyyaml`.
+Backend API server is started via `python api_server.py` (port 8765). Key dependencies: `pandas`, `numpy`, `plotly`, `pyyaml`, `starlette`, `uvicorn`.
+
+**Python interpreter:** Use `D:\anaconda3\envs\Quant-UI\python.exe` (conda environment for this project). In Git Bash: `/d/anaconda3/envs/Quant-UI/python.exe`.
 
 ## Architecture
 

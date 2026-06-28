@@ -1,11 +1,12 @@
 # Quant-UI Dependencies
 # =====================
 # Core
-streamlit>=1.28.0
 pandas>=2.0.0
 numpy>=1.24.0
 plotly>=5.17.0
 pyyaml>=6.0
+starlette>=0.34.0
+uvicorn>=0.28.0
 
 # Optional: for ta-lib based indicators (pure pandas used by default)
 # pandas-ta>=0.3.14b0

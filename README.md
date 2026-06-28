@@ -1,6 +1,6 @@
 # Quant-UI: Stock Strategy Visualization Platform
 
-股票策略可视化平台 — 基于 Streamlit + Plotly 的交互式量化交易信号可视化系统。
+股票策略可视化平台 — 基于 Next.js + Python API + Plotly 的交互式量化交易信号可视化系统。
 
 ## 功能特性
 
@@ -26,12 +26,23 @@
 
 ```
 Quant-UI/
-├── app.py                      # Streamlit 主入口
+├── api_server.py               # Python API 后端入口
 ├── config.yaml                 # 配置文件
 ├── requirements.txt            # Python 依赖
 ├── README.md                   # 本文件
+├── package.json                # Next.js 前端依赖
+├── next.config.js              # Next.js 配置
 ├── output/                     # 导出报表目录
-└── src/
+├── app/                        # Next.js 前端 (App Router)
+│   ├── page.tsx                # 首页
+│   ├── layout.tsx              # 根布局
+│   ├── strategies/             # 策略详情页
+│   ├── market/                 # 行情分类页
+│   ├── about/                  # 关于页
+│   └── api/                    # 前端 API 路由
+├── components/                 # React UI 组件
+├── types/                      # TypeScript 类型定义
+└── src/                        # Python 后端
     ├── config/                 # 配置加载
     │   └── settings.py         # AppConfig, 环境变量覆盖
     ├── data_loader/            # 数据加载层
@@ -53,8 +64,7 @@ Quant-UI/
     │   ├── pairer.py           # 买卖配对
     │   └── pnl.py              # 收益计算
     ├── visualizer/             # 可视化
-    │   ├── chart_builder.py    # Plotly 图表构建
-    │   └── components.py       # UI 组件
+    │   └── chart_builder.py    # Plotly 图表构建
     └── utils/                  # 工具
         ├── date_utils.py       # 日期解析
         ├── file_utils.py       # 文件扫描
@@ -88,10 +98,14 @@ stock_name_csv_path: "D:/github/RobotMeQ_Dataset/QuantData/asset_code/a800_stock
 ### 3. 启动应用
 
 ```bash
-streamlit run app.py
+# 启动 Python API 后端 (端口 8765)
+python api_server.py
+
+# 启动 Next.js 前端 (端口 3000)
+npm run dev
 ```
 
-浏览器会自动打开 `http://localhost:8501`。
+浏览器打开 `http://localhost:3000` 查看前端页面。
 
 ## 数据约定
 
@@ -198,8 +212,9 @@ registry.register(MyNewAdapter(config))
 
 ## 技术栈
 
-- **Web 框架**: Streamlit
-- **图表**: Plotly
+- **前端**: Next.js 14, React 18, TypeScript, Tailwind CSS
+- **后端**: Python, Starlette (API), Uvicorn
+- **图表**: Plotly (Python 后端), Recharts/ECharts (前端)
 - **数据处理**: pandas, numpy
 - **配置**: YAML + dataclasses
 

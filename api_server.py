@@ -1,7 +1,7 @@
 """
 Quant-UI API Server — serves strategy, trade, and market data as JSON.
 
-Uses Starlette (already installed as a Streamlit dependency) — no extra pip needed.
+Uses Starlette + Uvicorn — install via `pip install starlette uvicorn`.
 
 Start:
     python api_server.py
