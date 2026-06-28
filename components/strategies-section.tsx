@@ -1,0 +1,151 @@
+'use client'
+
+import Link from 'next/link'
+import { ArrowRight, TrendingUp, Activity } from 'lucide-react'
+import { SectionHeading } from '@/components/section-heading'
+import { GlassCard } from '@/components/glass-card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import type { Strategy } from '@/types/strategy'
+
+export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
+  // Top 2 running strategies
+  const featured = strategies
+    .filter(s => s.status === 'running')
+    .slice(0, 2)
+
+  if (featured.length < 2) return null
+
+  return (
+    <section className="py-24 relative">
+      <div className="container mx-auto px-4">
+        <SectionHeading
+          label="Strategies"
+          title="核心策略引擎"
+          subtitle="两个策略基于不同的理论框架，经 TimesNet 深度时序模型统一推理，产生最终交易信号。"
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
+          {featured.map((strategy, i) => (
+            <Link key={strategy.id} href={`/strategies/${strategy.id}`}>
+              <GlassCard className="group h-full p-8 transform transition-all duration-500 hover:rotate-y-2 hover:scale-[1.02]">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                      i === 0
+                        ? 'bg-gradient-to-br from-quant-cyan/20 to-blue-500/10 border border-quant-cyan/20'
+                        : 'bg-gradient-to-br from-purple-500/20 to-quant-cyan/10 border border-purple-400/20'
+                    }`}>
+                      {i === 0 ? (
+                        <TrendingUp className="w-6 h-6 text-quant-cyan" />
+                      ) : (
+                        <Activity className="w-6 h-6 text-purple-400" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-display font-bold text-lg text-foreground">{strategy.name}</h3>
+                      <p className="text-xs text-terminal-muted font-mono">
+                        {i === 0 ? 'MACD Divergence + Triple Barrier' : 'Fuzzy Theory + Bayesian Optimization'}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="success">● Running</Badge>
+                </div>
+
+                {/* Key Metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  {[
+                    { label: '收益率', value: `${strategy.pnl > 0 ? '+' : ''}${strategy.pnl.toFixed(1)}%`, color: strategy.pnl >= 0 ? 'text-quant-green' : 'text-quant-red' },
+                    { label: 'Sharpe', value: strategy.sharpe.toFixed(2), color: strategy.sharpe >= 2 ? 'text-quant-green' : 'text-quant-amber' },
+                    { label: '最大回撤', value: `${strategy.maxDrawdown.toFixed(1)}%`, color: 'text-quant-red' },
+                    { label: '胜率', value: `${strategy.winRate.toFixed(1)}%`, color: 'text-quant-cyan' },
+                  ].map((metric) => (
+                    <div key={metric.label}>
+                      <p className="text-[10px] text-terminal-muted uppercase tracking-wider mb-1">{metric.label}</p>
+                      <p className={`font-mono font-semibold text-sm ${metric.color}`}>{metric.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Flow diagram placeholder */}
+                <div className="mb-6 p-4 rounded-xl bg-muted/30 border border-border">
+                  <div className="flex items-center justify-between gap-2">
+                    {i === 0 ? (
+                      <>
+                        <FlowStep label="价格" />
+                        <FlowArrow />
+                        <FlowStep label="MACD" />
+                        <FlowArrow />
+                        <FlowStep label="背离" color="cyan" />
+                        <FlowArrow />
+                        <FlowStep label="Barrier" />
+                        <FlowArrow />
+                        <FlowStep label="TimesNet" color="green" highlight />
+                      </>
+                    ) : (
+                      <>
+                        <FlowStep label="模糊化" />
+                        <FlowArrow />
+                        <FlowStep label="隶属度" color="cyan" />
+                        <FlowArrow />
+                        <FlowStep label="贝叶斯" />
+                        <FlowArrow />
+                        <FlowStep label="寻优" />
+                        <FlowArrow />
+                        <FlowStep label="TimesNet" color="green" highlight />
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-terminal-muted">
+                    <span>{strategy.totalTrades} 笔交易</span>
+                    <span>·</span>
+                    <span className="profit-text">{strategy.profitTrades} 盈利</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-quant-cyan text-sm font-medium group-hover:gap-2 transition-all">
+                    View Details
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </GlassCard>
+            </Link>
+          ))}
+        </div>
+
+        {/* View all link */}
+        <div className="text-center mt-10">
+          <Link href="/strategies">
+            <Button variant="ghost" className="text-terminal-muted hover:text-quant-cyan">
+              View All Strategies →
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function FlowStep({ label, color, highlight }: { label: string; color?: string; highlight?: boolean }) {
+  const textColor =
+    color === 'cyan' ? 'text-quant-cyan' :
+    color === 'green' ? 'text-quant-green' :
+    'text-terminal-muted'
+  return (
+    <span className={`text-[10px] md:text-xs font-mono whitespace-nowrap px-2 py-1 rounded-md ${
+      highlight ? 'bg-quant-green/10 border border-quant-green/20 text-quant-green' :
+      'bg-muted/30 border border-border'
+    } ${textColor}`}>
+      {label}
+    </span>
+  )
+}
+
+function FlowArrow() {
+  return (
+    <span className="text-terminal-muted text-[10px]">→</span>
+  )
+}

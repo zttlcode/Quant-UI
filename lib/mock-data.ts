@@ -43,9 +43,9 @@ function generateTimeSeries(count: number, basePrice: number, volatility: number
 // 策略数据
 export const strategies: Strategy[] = [
   {
-    id: '1',
-    name: '动量突破策略',
-    description: '基于价格动量突破的日内交易策略',
+    id: 'macd-divergence',
+    name: 'MACD 背离策略',
+    description: 'MACD 背离信号 + Triple Barrier Method + TimesNet 推理，捕捉趋势转折点的有效交易机会',
     markets: ['SSE', 'HSI'],
     pnl: 24.3,
     maxDrawdown: 8.2,
@@ -62,9 +62,9 @@ export const strategies: Strategy[] = [
     profitFactor: 2.4
   },
   {
-    id: '2',
-    name: '均值回归策略',
-    description: '统计套利，捕捉价格偏离均值的回归机会',
+    id: 'fuzzy-bayesian',
+    name: '模糊贝叶斯策略',
+    description: '模糊理论 + 目标导向贝叶斯寻优 + TimesNet 推理，适应复杂多变市场环境的智能策略',
     markets: ['NASDAQ', 'BTC'],
     pnl: 18.7,
     maxDrawdown: 12.5,
@@ -81,7 +81,7 @@ export const strategies: Strategy[] = [
     profitFactor: 1.9
   },
   {
-    id: '3',
+    id: 'volatility-arbitrage',
     name: '波动率套利',
     description: '利用期权波动率偏度进行套利',
     markets: ['NIKKEI'],
@@ -100,7 +100,7 @@ export const strategies: Strategy[] = [
     profitFactor: 3.2
   },
   {
-    id: '4',
+    id: 'ml-prediction',
     name: '机器学习预测',
     description: '基于LSTM神经网络的价格预测策略',
     markets: ['SSE', 'NASDAQ'],
@@ -119,7 +119,7 @@ export const strategies: Strategy[] = [
     profitFactor: 1.6
   },
   {
-    id: '5',
+    id: 'hft-market-making',
     name: '高频做市',
     description: '高频流动性提供策略',
     markets: ['BTC'],
@@ -138,7 +138,7 @@ export const strategies: Strategy[] = [
     profitFactor: 4.1
   },
   {
-    id: '6',
+    id: 'fundamental-quant',
     name: '基本面量化',
     description: '结合基本面指标的量化选股策略',
     markets: ['SSE', 'HSI', 'NASDAQ'],
