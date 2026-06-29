@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { SectionHeading } from '@/components/section-heading'
 import { cn } from '@/lib/utils'
 
@@ -8,12 +9,21 @@ const PIPELINE_STEPS = [
   { label: 'Feature\nEngineering', color: 'border-quant-cyan/40 bg-quant-cyan/5' },
   { label: 'Strategy\nSignal', color: 'border-blue-400/50 bg-blue-400/5' },
   { label: 'Meta\nLabel', color: 'border-purple-400/50 bg-purple-400/5' },
-  { label: 'TimesNet\nInference', color: 'border-quant-green/50 bg-quant-green/5', highlight: true },
+  { label: 'Deep Time Series\nInference', color: 'border-quant-green/50 bg-quant-green/5' },
   { label: 'Trading\nSignal', color: 'border-quant-green/40 bg-quant-green/5' },
   { label: 'Portfolio\nStats', color: 'border-amber-400/50 bg-amber-400/5' },
 ]
 
 export function PipelineSection() {
+  const [highlightIndex, setHighlightIndex] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHighlightIndex(prev => (prev + 1) % PIPELINE_STEPS.length)
+    }, 500)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <section className="py-24 relative overflow-hidden">
       <div className="container mx-auto px-4">
@@ -44,7 +54,7 @@ export function PipelineSection() {
                   className={cn(
                     'w-12 h-12 md:w-16 md:h-16 rounded-2xl border flex items-center justify-center relative z-10 transition-all duration-300 hover:scale-110',
                     step.color,
-                    step.highlight && 'shadow-cyan-glow animate-pulse-glow'
+                    highlightIndex === i && 'shadow-cyan-glow animate-pulse-glow'
                   )}
                 >
                   <span className="text-xs md:text-sm font-mono font-bold text-foreground text-center leading-tight whitespace-pre-line">
@@ -54,7 +64,7 @@ export function PipelineSection() {
                 {/* Label */}
                 <p className={cn(
                   'mt-3 text-[10px] md:text-xs text-center font-mono whitespace-pre-line leading-tight',
-                  step.highlight ? 'text-quant-cyan' : 'text-terminal-muted'
+                  highlightIndex === i ? 'text-quant-cyan' : 'text-terminal-muted'
                 )}>
                   {step.label}
                 </p>

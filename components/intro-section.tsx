@@ -13,14 +13,14 @@ const FEATURES = [
   },
   {
     icon: Network,
-    title: 'TimesNet Model',
-    desc: '深度时序模型将 1D 时间序列转换为 2D 张量，捕捉多周期模式，实现高精度推理预测。',
+    title: 'Deep Time Series Models',
+    desc: '基于清华 Time-Series-Library，集成多种深度时序模型架构，捕捉市场多周期模式，实现高精度推理预测。',
     gradient: 'from-purple-500/20 to-quant-cyan/10',
   },
   {
     icon: Cog,
     title: 'Strategy Engine',
-    desc: 'MACD 背离 + Triple Barrier 和模糊理论 + 贝叶斯寻优双策略驱动，覆盖不同市场状态。',
+    desc: '多种策略引擎协同驱动，融合技术指标、模糊理论与贝叶斯优化等方法，覆盖不同市场状态。',
     gradient: 'from-quant-green/20 to-emerald-500/10',
   },
   {

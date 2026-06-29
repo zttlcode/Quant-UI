@@ -51,7 +51,7 @@ export function HeroSection({ strategies = [] }: { strategies?: Strategy[] }) {
 
         {/* Subtitle */}
         <p className="text-terminal-muted text-base md:text-lg max-w-2xl mx-auto mb-8 font-mono leading-relaxed">
-          Meta-labeling + TimesNet + Bayesian Optimization
+          Meta-labeling + Deep Time Series Models
         </p>
 
         {/* CTA Buttons */}
@@ -72,14 +72,13 @@ export function HeroSection({ strategies = [] }: { strategies?: Strategy[] }) {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
           {[
-            { label: 'Avg Return', value: totalReturn, suffix: '%', color: 'text-quant-green' },
+            { label: 'Assets Covered', value: 866, suffix: '', color: 'text-quant-green' },
             { label: 'Strategies', value: runningCount, suffix: '', color: 'text-quant-cyan' },
-            { label: 'AI Models', value: 4, suffix: '', color: 'text-quant-cyan' },
-            { label: 'Meta-labeling', value: 1, suffix: '', color: 'text-quant-green', prefix: '✓ ' },
+            { label: 'AI Models', value: 11, suffix: '', color: 'text-quant-cyan' },
+            { label: 'Markets', value: 4, suffix: '', color: 'text-quant-green' },
           ].map((stat) => (
             <div key={stat.label} className="glass-card-variant p-4 text-center">
               <div className={`text-xl md:text-2xl font-bold font-mono ${stat.color}`}>
-                {stat.prefix || ''}
                 {mounted && <CountUp value={stat.value} duration={1200} />}
                 {!mounted && <span>{stat.value}</span>}
                 {stat.suffix}

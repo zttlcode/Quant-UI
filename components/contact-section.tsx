@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 const CONTACTS = [
   {
     label: 'Twitter / X',
-    href: 'https://twitter.com/quant_trader',
+    href: 'https://x.com/ztt32784043',
     color: 'hover:border-blue-400/40 hover:text-blue-400 hover:shadow-blue-500/20',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -34,7 +34,7 @@ const CONTACTS = [
   },
   {
     label: 'GitHub',
-    href: 'https://github.com',
+    href: 'https://github.com/zttlcode',
     color: 'hover:border-gray-400/40 hover:text-gray-300 hover:shadow-gray-500/20',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
