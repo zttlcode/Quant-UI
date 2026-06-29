@@ -151,11 +151,11 @@ class ChartBuilder:
                 decreasing=dict(line=dict(color=COLOR_CANDLE_DOWN), fillcolor=COLOR_CANDLE_DOWN),
                 hovertext=[
                     f"日期: {idx.strftime('%Y-%m-%d')}<br>"
-                    f"开: {row.open:.4f}<br>"
-                    f"高: {row.high:.4f}<br>"
-                    f"低: {row.low:.4f}<br>"
-                    f"收: {row.close:.4f}<br>"
-                    f"量: {row.volume:,.0f}"
+                    f"开: {row['open']:.4f}<br>"
+                    f"高: {row['high']:.4f}<br>"
+                    f"低: {row['low']:.4f}<br>"
+                    f"收: {row['close']:.4f}<br>"
+                    f"量: {row['volume']:,.0f}"
                     for idx, (_, row) in zip(price_df.index, price_df.iterrows())
                 ],
                 hoverinfo="text",

@@ -4,16 +4,10 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, BarChart3, Menu, X } from 'lucide-react'
+import { useLocale, useT } from '@/lib/i18n'
+import { Moon, Sun, BarChart3, Menu, X, Languages } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { fetchStrategies } from '@/lib/data-service'
-
-const NAV_ITEMS = [
-  { href: '/', label: 'Research', icon: BarChart3 },
-  { href: '/strategies', label: 'Strategies' },
-  { href: '/market', label: 'Market' },
-  { href: '/about', label: 'About' },
-]
 
 export function Navbar() {
   const { theme, setTheme } = useTheme()
@@ -21,6 +15,15 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const locale = useLocale()
+  const t = useT('nav')
+
+  const NAV_ITEMS = [
+    { href: '/', label: t('research'), icon: BarChart3 },
+    { href: '/strategies', label: t('strategies') },
+    { href: '/market', label: t('market') },
+    { href: '/about', label: t('about') },
+  ]
 
   useEffect(() => {
     setMounted(true)
@@ -44,6 +47,12 @@ export function Navbar() {
     })
   }, [])
 
+  const switchLocale = () => {
+    const next = locale === 'zh' ? 'en' : 'zh'
+    document.cookie = `NEXT_LOCALE=${next};path=/;max-age=31536000;SameSite=Lax`
+    window.location.reload()
+  }
+
   return (
     <nav
       className={cn(
@@ -66,7 +75,7 @@ export function Navbar() {
                 <span className="text-quant-cyan"> AI</span>
               </h1>
               <p className="text-[10px] text-terminal-muted font-mono tracking-wider">
-                RESEARCH PLATFORM
+                {t('researchPlatform')}
               </p>
             </div>
           </Link>
@@ -105,13 +114,13 @@ export function Navbar() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-quant-green" />
               </span>
               <span className="text-[10px] font-mono text-quant-green tracking-wider">
-                {runningCount} LIVE
+                {t('live', { count: runningCount })}
               </span>
             </div>
 
             {/* GitHub */}
             <a
-              href="https://github.com"
+              href="https://github.com/zttlcode"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg text-terminal-muted hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -122,11 +131,27 @@ export function Navbar() {
               </svg>
             </a>
 
+            {/* Language Toggle */}
+            <button
+              onClick={switchLocale}
+              className="p-2 rounded-lg border border-border hover:bg-muted/50 transition-all duration-200 w-9 h-9 flex items-center justify-center"
+              aria-label={locale === 'zh' ? 'Switch to English' : '切换到中文'}
+              title={locale === 'zh' ? 'Switch to English' : '切换到中文'}
+            >
+              {!mounted ? (
+                <div className="w-4 h-4" />
+              ) : (
+                <span className="text-xs font-mono font-bold text-terminal-muted">
+                  {locale === 'zh' ? 'EN' : '中'}
+                </span>
+              )}
+            </button>
+
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-lg border border-border hover:bg-muted/50 transition-all duration-200 w-9 h-9 flex items-center justify-center"
-              aria-label="切换主题"
+              aria-label={t('toggleTheme')}
             >
               {!mounted ? (
                 <div className="w-4 h-4" />
@@ -142,7 +167,7 @@ export function Navbar() {
           <button
             className="md:hidden p-2 rounded-lg border border-border hover:bg-muted/50 transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? '关闭菜单' : '打开菜单'}
+            aria-label={mobileMenuOpen ? t('closeMenu') : t('openMenu')}
           >
             {mobileMenuOpen ? (
               <X className="w-5 h-5" />
@@ -178,22 +203,33 @@ export function Navbar() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-quant-green rounded-full animate-pulse" />
                 <span className="text-xs text-terminal-muted">
-                  {runningCount} 策略运行中
+                  {t('strategiesRunning', { count: runningCount })}
                 </span>
               </div>
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-2 rounded-lg border border-border w-9 h-9 flex items-center justify-center"
-                aria-label="切换主题"
-              >
-                {!mounted ? (
-                  <div className="w-4 h-4" />
-                ) : theme === 'dark' ? (
-                  <Sun className="w-4 h-4 text-quant-amber" />
-                ) : (
-                  <Moon className="w-4 h-4 text-terminal-muted" />
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={switchLocale}
+                  className="p-2 rounded-lg border border-border w-9 h-9 flex items-center justify-center"
+                  aria-label={locale === 'zh' ? 'Switch to English' : '切换到中文'}
+                >
+                  <span className="text-xs font-mono font-bold text-terminal-muted">
+                    {locale === 'zh' ? 'EN' : '中'}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="p-2 rounded-lg border border-border w-9 h-9 flex items-center justify-center"
+                  aria-label={t('toggleTheme')}
+                >
+                  {!mounted ? (
+                    <div className="w-4 h-4" />
+                  ) : theme === 'dark' ? (
+                    <Sun className="w-4 h-4 text-quant-amber" />
+                  ) : (
+                    <Moon className="w-4 h-4 text-terminal-muted" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

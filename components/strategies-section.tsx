@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useT, useStrategyName, useStrategyDesc } from '@/lib/i18n'
 import { ArrowRight, TrendingUp, Activity, Loader2 } from 'lucide-react'
 import { SectionHeading } from '@/components/section-heading'
 import { GlassCard } from '@/components/glass-card'
@@ -31,6 +32,10 @@ function computeMetrics(stocks: StockSummary[]): ComputedMetrics {
 }
 
 export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
+  const t = useT('strategies')
+  const sn = useStrategyName()
+  const sd = useStrategyDesc()
+
   const featured = strategies
     .filter(s => s.status === 'running')
     .slice(0, 2)
@@ -61,20 +66,23 @@ export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
       load()
     }
     return () => { cancelled = true }
-  }, [strategies.map(s => s.id).join(',')])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(strategies.map(s => s.id))])
 
   if (featured.length < 2) return null
 
   // Helper to determine if a strategy is tea_radical_nature (MACD-based)
   const isTea = (id: string) => id.includes('tea') || id.includes('radical')
 
+  const metricLabels = [t('returnRate'), t('sharpe'), t('maxDrawdown'), t('winRate')]
+
   return (
     <section className="py-24 relative">
       <div className="container mx-auto px-4">
         <SectionHeading
-          label="Strategies"
-          title="核心策略引擎"
-          subtitle="多种策略基于不同的理论框架，经深度时序模型统一推理，产出最终交易信号。"
+          label={t('label')}
+          title={t('title')}
+          subtitle={t('subtitle')}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
@@ -102,19 +110,19 @@ export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
                       )}
                     </div>
                     <div>
-                      <h3 className="font-display font-bold text-lg text-foreground">{strategy.name}</h3>
+                      <h3 className="font-display font-bold text-lg text-foreground">{sn(strategy.id, strategy.name)}</h3>
                       <p className="text-xs text-terminal-muted font-mono">
-                        {tea ? 'MACD Divergence + Triple Barrier' : 'Fuzzy Theory + Bayesian Optimization'}
+                        {tea ? t('macdSubtitle') : t('fuzzySubtitle')}
                       </p>
                     </div>
                   </div>
-                  <Badge variant="success">● Running</Badge>
+                  <Badge variant="success">● {t('running')}</Badge>
                 </div>
 
                 {/* Key Metrics */}
                 {isLoading ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    {['收益率', 'Sharpe', '最大回撤', '胜率'].map(label => (
+                    {metricLabels.map(label => (
                       <div key={label}>
                         <p className="text-[10px] text-terminal-muted uppercase tracking-wider mb-1">{label}</p>
                         <div className="flex items-center gap-1.5 h-5">
@@ -127,10 +135,10 @@ export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
                 ) : metrics ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     {[
-                      { label: '收益率', value: `${metrics.avgPnl > 0 ? '+' : ''}${metrics.avgPnl.toFixed(1)}%`, color: metrics.avgPnl >= 0 ? 'text-quant-green' : 'text-quant-red' },
-                      { label: 'Sharpe', value: strategy.sharpe.toFixed(2), color: strategy.sharpe >= 2 ? 'text-quant-green' : 'text-quant-amber' },
-                      { label: '最大回撤', value: `${strategy.maxDrawdown.toFixed(1)}%`, color: 'text-quant-red' },
-                      { label: '胜率', value: `${metrics.winRate.toFixed(1)}%`, color: 'text-quant-cyan' },
+                      { label: t('returnRate'), value: `${metrics.avgPnl > 0 ? '+' : ''}${metrics.avgPnl.toFixed(1)}%`, color: metrics.avgPnl >= 0 ? 'text-quant-green' : 'text-quant-red' },
+                      { label: t('sharpe'), value: strategy.sharpe.toFixed(2), color: strategy.sharpe >= 2 ? 'text-quant-green' : 'text-quant-amber' },
+                      { label: t('maxDrawdown'), value: `${strategy.maxDrawdown.toFixed(1)}%`, color: 'text-quant-red' },
+                      { label: t('winRate'), value: `${metrics.winRate.toFixed(1)}%`, color: 'text-quant-cyan' },
                     ].map((metric) => (
                       <div key={metric.label}>
                         <p className="text-[10px] text-terminal-muted uppercase tracking-wider mb-1">{metric.label}</p>
@@ -140,10 +148,10 @@ export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    {['收益率', 'Sharpe', '最大回撤', '胜率'].map(label => (
+                    {metricLabels.map(label => (
                       <div key={label}>
                         <p className="text-[10px] text-terminal-muted uppercase tracking-wider mb-1">{label}</p>
-                        <p className="text-xs text-quant-red font-mono">加载失败</p>
+                        <p className="text-xs text-quant-red font-mono">{t('loadFailed')}</p>
                       </div>
                     ))}
                   </div>
@@ -154,27 +162,27 @@ export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
                   <div className="flex items-center justify-between gap-2">
                     {tea ? (
                       <>
-                        <FlowStep label="价格" />
+                        <FlowStep label={t('flowPrice')} />
                         <FlowArrow />
-                        <FlowStep label="MACD" />
+                        <FlowStep label={t('flowMACD')} />
                         <FlowArrow />
-                        <FlowStep label="背离" color="cyan" />
+                        <FlowStep label={t('flowDivergence')} color="cyan" />
                         <FlowArrow />
-                        <FlowStep label="Barrier" />
+                        <FlowStep label={t('flowBarrier')} />
                         <FlowArrow />
-                        <FlowStep label="Deep TS" color="green" highlight />
+                        <FlowStep label={t('flowDeepTS')} color="green" highlight />
                       </>
                     ) : (
                       <>
-                        <FlowStep label="模糊化" />
+                        <FlowStep label={t('flowFuzzify')} />
                         <FlowArrow />
-                        <FlowStep label="隶属度" color="cyan" />
+                        <FlowStep label={t('flowMembership')} color="cyan" />
                         <FlowArrow />
-                        <FlowStep label="贝叶斯" />
+                        <FlowStep label={t('flowBayesian')} />
                         <FlowArrow />
-                        <FlowStep label="寻优" />
+                        <FlowStep label={t('flowOptimization')} />
                         <FlowArrow />
-                        <FlowStep label="Deep TS" color="green" highlight />
+                        <FlowStep label={t('flowDeepTS')} color="green" highlight />
                       </>
                     )}
                   </div>
@@ -185,16 +193,16 @@ export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
                   <div className="flex items-center gap-2 text-sm text-terminal-muted">
                     {metrics ? (
                       <>
-                        <span>{metrics.totalAssets} 个资产</span>
+                        <span>{t('assetsCount', { count: metrics.totalAssets })}</span>
                         <span>·</span>
-                        <span className="profit-text">{metrics.profitableAssets} 盈利</span>
+                        <span className="profit-text">{t('profitable', { count: metrics.profitableAssets })}</span>
                       </>
                     ) : (
-                      <span className="text-terminal-muted">加载中...</span>
+                      <span className="text-terminal-muted">{t('loading')}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1 text-quant-cyan text-sm font-medium group-hover:gap-2 transition-all">
-                    View Details
+                    {t('viewDetails')}
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 </div>
@@ -207,7 +215,7 @@ export function StrategiesSection({ strategies }: { strategies: Strategy[] }) {
         <div className="text-center mt-10">
           <Link href="/strategies">
             <Button variant="ghost" className="text-terminal-muted hover:text-quant-cyan">
-              View All Strategies →
+              {t('viewAllStrategies')}
             </Button>
           </Link>
         </div>

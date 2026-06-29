@@ -70,5 +70,5 @@ log_file: "./output/app.log"
 
 # --- Web App ---
 app_title: "Quant-UI | Stock Strategy Visualization"
-app_port: 8501
+app_port: 8765
 app_host: "localhost"

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useT } from '@/lib/i18n'
 import { HeroSection } from '@/components/hero-section'
 import { IntroSection } from '@/components/intro-section'
 import { PipelineSection } from '@/components/pipeline-section'
@@ -14,6 +15,7 @@ import type { Strategy } from '@/types/strategy'
 export default function Home() {
   const [strategies, setStrategies] = useState<Strategy[]>([])
   const [error, setError] = useState<string | null>(null)
+  const t = useT('errors')
 
   useEffect(() => {
     fetchStrategies().then((result) => {
@@ -27,7 +29,7 @@ export default function Home() {
       {error && (
         <div className="container mx-auto px-4 py-12">
           <div className="glass-card-variant p-8 text-center border-quant-red/30">
-            <p className="text-quant-red font-mono text-sm font-semibold mb-2">数据加载失败</p>
+            <p className="text-quant-red font-mono text-sm font-semibold mb-2">{t('dataLoadFailed')}</p>
             <p className="text-terminal-muted text-xs font-mono">{error}</p>
           </div>
         </div>

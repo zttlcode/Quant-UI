@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { ArrowDown, Sparkles } from 'lucide-react'
+import { useT } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CountUp } from '@/components/count-up'
@@ -16,6 +17,7 @@ const NeuralNetworkCanvas = dynamic(
 
 export function HeroSection({ strategies = [] }: { strategies?: Strategy[] }) {
   const [mounted, setMounted] = useState(false)
+  const t = useT('hero')
   useEffect(() => setMounted(true), [])
 
   const totalReturn = strategies.length > 0
@@ -34,37 +36,37 @@ export function HeroSection({ strategies = [] }: { strategies?: Strategy[] }) {
         <div className="mb-6 animate-float">
           <Badge variant="default" className="px-4 py-1.5 text-sm gap-2">
             <Sparkles className="w-3.5 h-3.5" />
-            <span className="font-mono">AI-Powered Quantitative Research</span>
+            <span className="font-mono">{t('badge')}</span>
           </Badge>
         </div>
 
         {/* Title */}
         <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
           <span className="bg-gradient-to-br from-white via-quant-cyan to-blue-400 bg-clip-text text-transparent">
-            AI Quantitative
+            {t('title1')}
           </span>
           <br />
           <span className="bg-gradient-to-br from-quant-cyan to-quant-green bg-clip-text text-transparent">
-            Research Platform
+            {t('title2')}
           </span>
         </h1>
 
         {/* Subtitle */}
         <p className="text-terminal-muted text-base md:text-lg max-w-2xl mx-auto mb-8 font-mono leading-relaxed">
-          Meta-labeling + Deep Time Series Models
+          {t('subtitle')}
         </p>
 
         {/* CTA Buttons */}
         <div className="flex items-center justify-center gap-4 mb-16">
           <a href="#intro">
             <Button variant="glow" size="lg" className="group">
-              Explore Platform
+              {t('explorePlatform')}
               <ArrowDown className="w-4 h-4 ml-1 group-hover:translate-y-0.5 transition-transform" />
             </Button>
           </a>
           <a href="/strategies">
             <Button variant="outline" size="lg">
-              View Strategies
+              {t('viewStrategies')}
             </Button>
           </a>
         </div>
@@ -72,10 +74,10 @@ export function HeroSection({ strategies = [] }: { strategies?: Strategy[] }) {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
           {[
-            { label: 'Assets Covered', value: 866, suffix: '', color: 'text-quant-green' },
-            { label: 'Strategies', value: runningCount, suffix: '', color: 'text-quant-cyan' },
-            { label: 'AI Models', value: 11, suffix: '', color: 'text-quant-cyan' },
-            { label: 'Markets', value: 4, suffix: '', color: 'text-quant-green' },
+            { label: t('assetsCovered'), value: 866, suffix: '', color: 'text-quant-green' },
+            { label: t('strategies'), value: runningCount, suffix: '', color: 'text-quant-cyan' },
+            { label: t('aiModels'), value: 11, suffix: '', color: 'text-quant-cyan' },
+            { label: t('markets'), value: 4, suffix: '', color: 'text-quant-green' },
           ].map((stat) => (
             <div key={stat.label} className="glass-card-variant p-4 text-center">
               <div className={`text-xl md:text-2xl font-bold font-mono ${stat.color}`}>

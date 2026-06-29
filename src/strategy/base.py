@@ -9,7 +9,7 @@ All strategies extend this base class. It defines the interface for:
 
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -144,7 +144,7 @@ class BaseStrategyAdapter(ABC):
         stock_code: str,
         market: str = "A",
         level: str = "d",
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """Check data availability for a stock.
 
         Returns:

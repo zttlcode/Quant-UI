@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
+import path from 'path'
 
 // ── Index metadata ──────────────────────────────────────────────
 
-const DATA_ROOT = 'D:\\github\\RobotMeQ_Dataset\\QuantData'
+const DATA_ROOT = process.env.QUANT_UI_DATA_ROOT || 'D:\\github\\RobotMeQ_Dataset\\QuantData'
 
 const INDEX_NAMES: Record<string, string> = {
   '000001': '上证指数',
@@ -71,8 +72,8 @@ export async function GET(
   const code = params.code
   const indexName = INDEX_NAMES[code] || code
 
-  const pricePath = `${DATA_ROOT}\\live_index\\live_bar_A_${code}_d.csv`
-  const conditionPath = `${DATA_ROOT}\\market_condition_live\\A_${code}_d.csv`
+  const pricePath = path.join(DATA_ROOT, 'live_index', `live_bar_A_${code}_d.csv`)
+  const conditionPath = path.join(DATA_ROOT, 'market_condition_live', `A_${code}_d.csv`)
 
   try {
     // Read price data

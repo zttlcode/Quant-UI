@@ -1,5 +1,8 @@
+'use client'
+
 import { SectionHeading } from '@/components/section-heading'
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n'
 
 const CONTACTS = [
   {
@@ -45,13 +48,15 @@ const CONTACTS = [
 ]
 
 export function ContactSection() {
+  const t = useT('contact')
+
   return (
     <section className="py-24 relative">
       <div className="container mx-auto px-4 text-center">
         <SectionHeading
-          label="Connect"
-          title="Let's Connect"
-          subtitle="对量化交易或 AI 模型感兴趣？欢迎通过各种渠道与我交流。"
+          label={t('label')}
+          title={t('title')}
+          subtitle={t('subtitle')}
         />
 
         <div className="flex flex-wrap items-center justify-center gap-4 mt-12">
@@ -61,7 +66,7 @@ export function ContactSection() {
               href={contact.href}
               target={contact.href.startsWith('http') ? '_blank' : undefined}
               rel={contact.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-              title={contact.label === 'WeChat' ? '微信: quant_trader' : contact.label}
+              title={contact.label === 'WeChat' ? t('wechatTitle') : contact.label}
               className={cn(
                 'flex items-center gap-3 px-6 py-4 rounded-xl font-mono text-sm transition-all duration-300',
                 'border border-border bg-muted/30 backdrop-blur-sm',
@@ -76,7 +81,7 @@ export function ContactSection() {
         </div>
 
         <p className="mt-12 text-xs text-terminal-muted font-mono">
-          &copy; {new Date().getFullYear()} AI Quant Research. All rights reserved.
+          &copy; {new Date().getFullYear()} AI Quant Research. {t('copyright')}
         </p>
       </div>
     </section>

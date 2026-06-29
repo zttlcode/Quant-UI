@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
+import path from 'path'
 
 // ── Index configuration ──────────────────────────────────────────
 
-const DATA_ROOT = 'D:\\github\\RobotMeQ_Dataset\\QuantData'
+const DATA_ROOT = process.env.QUANT_UI_DATA_ROOT || 'D:\\github\\RobotMeQ_Dataset\\QuantData'
 
 const INDICES: { code: string; name: string }[] = [
   { code: '000001', name: '上证指数' },
@@ -29,7 +30,7 @@ export interface IndexOverviewItem {
 function readLastTwoPriceLines(
   code: string
 ): { latest: { close: number; date: string }; prev: { close: number; date: string } } | null {
-  const pricePath = `${DATA_ROOT}\\live_index\\live_bar_A_${code}_d.csv`
+  const pricePath = path.join(DATA_ROOT, 'live_index', `live_bar_A_${code}_d.csv`)
   if (!fs.existsSync(pricePath)) return null
 
   try {
@@ -65,7 +66,7 @@ function readLastTwoPriceLines(
 function readLastConditionLine(
   code: string
 ): { marketCondition: string; probability: number } | null {
-  const conditionPath = `${DATA_ROOT}\\market_condition_live\\A_${code}_d.csv`
+  const conditionPath = path.join(DATA_ROOT, 'market_condition_live', `A_${code}_d.csv`)
   if (!fs.existsSync(conditionPath)) return null
 
   try {

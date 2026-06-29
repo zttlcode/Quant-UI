@@ -5,22 +5,14 @@ import Link from 'next/link'
 import { TrendingUp, TrendingDown, Activity, AlertTriangle, BarChart3 } from 'lucide-react'
 import { GlassCard } from '@/components/glass-card'
 import { fetchMarketOverview } from '@/lib/data-service'
+import { useT } from '@/lib/i18n'
 import type { IndexOverviewItem } from '@/lib/data-service'
-
-// ── Condition display config ────────────────────────────────────
-
-const CONDITION_META: Record<string, { label: string; color: string; bg: string; border: string; icon: typeof TrendingUp }> = {
-  trend_up:   { label: '上涨趋势', color: 'text-quant-green', bg: 'bg-quant-green/5',  border: 'border-quant-green/20',  icon: TrendingUp },
-  trend_down: { label: '下跌趋势', color: 'text-quant-red',   bg: 'bg-quant-red/5',    border: 'border-quant-red/20',    icon: TrendingDown },
-  range:      { label: '震荡区间', color: 'text-quant-amber', bg: 'bg-quant-amber/5',  border: 'border-quant-amber/20',  icon: Activity },
-}
-
-// ── Page ─────────────────────────────────────────────────────────
 
 export default function MarketOverviewPage() {
   const [indices, setIndices] = useState<IndexOverviewItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const t = useT('market')
 
   useEffect(() => {
     async function load() {
@@ -33,13 +25,19 @@ export default function MarketOverviewPage() {
     load()
   }, [])
 
+  const CONDITION_META: Record<string, { label: string; color: string; bg: string; border: string; icon: typeof TrendingUp }> = {
+    trend_up:   { label: t('trendUp'), color: 'text-quant-green', bg: 'bg-quant-green/5',  border: 'border-quant-green/20',  icon: TrendingUp },
+    trend_down: { label: t('trendDown'), color: 'text-quant-red',   bg: 'bg-quant-red/5',    border: 'border-quant-red/20',    icon: TrendingDown },
+    range:      { label: t('range'), color: 'text-quant-amber', bg: 'bg-quant-amber/5',  border: 'border-quant-amber/20',  icon: Activity },
+  }
+
   // ── Loading ──
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-20 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-quant-cyan border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-terminal-muted font-mono text-sm">Loading market data...</p>
+          <p className="text-terminal-muted font-mono text-sm">{t('loading')}</p>
         </div>
       </div>
     )
@@ -51,7 +49,7 @@ export default function MarketOverviewPage() {
       <div className="container mx-auto px-4 py-20">
         <div className="glass-card-variant p-8 text-center border-quant-red/30 max-w-lg mx-auto">
           <AlertTriangle className="w-8 h-8 text-quant-red mx-auto mb-3" />
-          <p className="text-quant-red font-mono text-sm font-semibold mb-2">数据加载失败</p>
+          <p className="text-quant-red font-mono text-sm font-semibold mb-2">{t('dataLoadFailed')}</p>
           <p className="text-terminal-muted text-xs font-mono break-all">{error}</p>
         </div>
       </div>
@@ -64,8 +62,8 @@ export default function MarketOverviewPage() {
       <div className="container mx-auto px-4 py-20">
         <div className="glass-card-variant p-8 text-center border-quant-amber/20 max-w-lg mx-auto">
           <BarChart3 className="w-8 h-8 text-quant-amber mx-auto mb-3" />
-          <p className="text-terminal-muted font-mono text-sm">暂无可用的指数数据</p>
-          <p className="text-terminal-muted text-xs font-mono mt-1">请在 live_index 目录下添加指数 CSV 文件</p>
+          <p className="text-terminal-muted font-mono text-sm">{t('noData')}</p>
+          <p className="text-terminal-muted text-xs font-mono mt-1">{t('noDataHint')}</p>
         </div>
       </div>
     )
@@ -76,9 +74,9 @@ export default function MarketOverviewPage() {
     <div className="container mx-auto px-4 py-12">
       {/* Header */}
       <div className="mb-10">
-        <h1 className="font-display text-3xl font-bold mb-2">行情分类</h1>
+        <h1 className="font-display text-3xl font-bold mb-2">{t('pageTitle')}</h1>
         <p className="text-terminal-muted text-sm">
-          基于 Fuzzy 模糊推理的指数行情分类 — 实时分析大盘趋势方向与概率
+          {t('pageSubtitle')}
         </p>
       </div>
 
@@ -145,14 +143,14 @@ export default function MarketOverviewPage() {
                 ) : (
                   <div className="rounded-xl p-4 bg-muted/10 border border-border flex items-center gap-3">
                     <Activity className="w-5 h-5 text-terminal-muted/30" />
-                    <p className="text-xs font-mono text-terminal-muted">暂无分类数据</p>
+                    <p className="text-xs font-mono text-terminal-muted">{t('noClassification')}</p>
                   </div>
                 )}
 
                 {/* Footer */}
                 <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between">
                   <span className="text-[10px] text-terminal-muted/50 font-mono group-hover:text-quant-cyan transition-colors">
-                    查看详情 →
+                    {t('viewDetails')}
                   </span>
                   {idx.avmoodTrend ? (
                     (() => {
@@ -160,13 +158,13 @@ export default function MarketOverviewPage() {
                                          idx.avmoodTrend.startsWith('↓') ? 'text-quant-red' : 'text-quant-amber'
                       return (
                         <span className={`text-[10px] font-mono font-semibold ${trendColor}`}>
-                          Fuzzy: {idx.avmoodTrend}
+                          {t('fuzzyLabel')}{idx.avmoodTrend}
                         </span>
                       )
                     })()
                   ) : meta ? (
                     <span className={`text-[10px] font-mono font-semibold ${meta.color}`}>
-                      Fuzzy 判定: {meta.label}
+                      {t('fuzzyVerdict')}{meta.label}
                     </span>
                   ) : null}
                 </div>

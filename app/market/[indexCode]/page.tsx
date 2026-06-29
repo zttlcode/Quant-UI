@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useT } from '@/lib/i18n'
 import { ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, AlertTriangle, BarChart3 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/glass-card'
@@ -94,6 +95,7 @@ function normalizeBars(bars: IndexBar[]) {
 // ── Page ─────────────────────────────────────────────────────────
 
 export default function MarketDetailPage({ params }: { params: { indexCode: string } }) {
+  const t = useT('marketDetail')
   const { indexCode } = params
   const indexMeta = MARKET_INDICES.find(i => i.code === indexCode)
   const indexName = indexMeta?.name || indexCode
@@ -120,6 +122,13 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
   const visible = useMemo(() => bars.slice(-visibleBars), [bars, visibleBars])
   const { norm, base, domain } = useMemo(() => normalizeBars(visible), [visible])
 
+  // Translated condition labels
+  const condLabel: Record<string, string> = useMemo(() => ({
+    trend_up: t('trendUp'),
+    trend_down: t('trendDown'),
+    range: t('range'),
+  }), [t])
+
   // Process avmood for chart
   const avmoodChartData = useMemo(() => {
     if (!avmoodRaw?.length) return []
@@ -145,7 +154,7 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
     return (
       <div className="container mx-auto px-4 py-20">
         <Link href="/market" className="inline-flex items-center gap-2 text-terminal-muted hover:text-quant-cyan text-sm mb-6">
-          <ArrowLeft className="w-4 h-4" /> 返回行情分类
+          <ArrowLeft className="w-4 h-4" /> {t('backTo')}
         </Link>
         <div className="glass-card-variant p-8 text-center border-quant-red/30">
           <AlertTriangle className="w-8 h-8 text-quant-red mx-auto mb-3" />
@@ -160,18 +169,18 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
     <div className="container mx-auto px-4 py-12">
       {/* Back link */}
       <Link href="/market" className="inline-flex items-center gap-2 text-terminal-muted hover:text-quant-cyan transition-colors text-sm mb-4">
-        <ArrowLeft className="w-4 h-4" /> 行情分类概览
+        <ArrowLeft className="w-4 h-4" /> {t('backToOverview')}
       </Link>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold">{indexName}</h1>
-          <p className="text-xs font-mono text-terminal-muted mt-0.5">{indexCode} · 基于 Fuzzy 模糊推理的实时行情分类</p>
+          <p className="text-xs font-mono text-terminal-muted mt-0.5">{indexCode}{t('subtitle')}</p>
         </div>
         <Badge variant="default" className="gap-2 h-8">
           <span className="w-2 h-2 bg-quant-cyan rounded-full animate-pulse" />
-          <span className="font-mono text-xs">AI Live</span>
+          <span className="font-mono text-xs">{t('aiLive')}</span>
         </Badge>
       </div>
 
@@ -183,35 +192,35 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
           )}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs text-terminal-muted uppercase tracking-wider mb-1">Latest AI Classification</p>
+              <p className="text-xs text-terminal-muted uppercase tracking-wider mb-1">{t('latestClassification')}</p>
               <p className="text-lg font-display font-bold">{latest.time?.substring(0, 10)}</p>
             </div>
             {latest.marketCondition && COND_MAP[latest.marketCondition] ? (() => {
               const c = COND_MAP[latest.marketCondition]
               return (
                 <div className="px-4 py-2.5 rounded-full text-white font-bold text-sm flex items-center gap-2" style={{ backgroundColor: c.color }}>
-                  <c.icon className="w-4 h-4" />{c.label}
+                  <c.icon className="w-4 h-4" />{condLabel[latest.marketCondition]}
                 </div>
               )
-            })() : <Badge variant="outline">No Data</Badge>}
+            })() : <Badge variant="outline">{t('noData')}</Badge>}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-[10px] text-terminal-muted uppercase">Close</p>
+              <p className="text-[10px] text-terminal-muted uppercase">{t('close')}</p>
               <p className="font-mono font-semibold">{latest.close.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-terminal-muted uppercase">Change</p>
+              <p className="text-[10px] text-terminal-muted uppercase">{t('change')}</p>
               <p className={`font-mono font-semibold ${latest.close >= latest.open ? 'text-quant-green' : 'text-quant-red'}`}>
                 {((latest.close - latest.open) / latest.open * 100).toFixed(2)}%
               </p>
             </div>
             <div>
-              <p className="text-[10px] text-terminal-muted uppercase">Volume</p>
-              <p className="font-mono text-sm">{(latest.volume / 1e8).toFixed(2)}亿</p>
+              <p className="text-[10px] text-terminal-muted uppercase">{t('volume')}</p>
+              <p className="font-mono text-sm">{(latest.volume / 1e8).toFixed(2)}{t('volumeUnit')}</p>
             </div>
             <div>
-              <p className="text-[10px] text-terminal-muted uppercase">Probability</p>
+              <p className="text-[10px] text-terminal-muted uppercase">{t('probability')}</p>
               {latest.probability != null ? (
                 <div>
                   <p className="font-mono font-bold text-lg" style={{ color: latest.marketCondition ? COND_MAP[latest.marketCondition]?.color : '#9CA3AF' }}>
@@ -240,7 +249,7 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
               <cfg.icon className="w-6 h-6 mx-auto mb-2" style={{ color: cfg.color }} />
               <p className="font-mono text-2xl font-bold" style={{ color: cfg.color }}>{count}</p>
               <p className="text-[10px] text-terminal-muted">({(count / total * 100).toFixed(1)}%)</p>
-              <p className="text-xs font-display font-semibold mt-1">{cfg.label}</p>
+              <p className="text-xs font-display font-semibold mt-1">{condLabel[key]}</p>
             </GlassCard>
           )
         })}
@@ -248,7 +257,7 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
 
       {/* ── Bar count selector ── */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-[10px] font-mono text-terminal-muted">Bars:</span>
+        <span className="text-[10px] font-mono text-terminal-muted">{t('bars')}</span>
         {[20, 40, 60, 90, 120, 180].map(n => (
           <button key={n} onClick={() => setVisibleBars(n)}
             className={`px-2.5 py-1 rounded-md text-[10px] font-mono border transition-all ${visibleBars === n ? 'bg-quant-cyan/10 border-quant-cyan/30 text-quant-cyan' : 'border-transparent text-terminal-muted hover:text-foreground'}`}
@@ -260,18 +269,18 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
       {/* ── Candlestick Chart ── */}
       <GlassCard variant="subtle" className="p-5 mb-8">
         <h3 className="font-display font-semibold text-sm mb-2 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-quant-cyan" /> {indexName} — K线图 + AI 行情分类
+          <BarChart3 className="w-4 h-4 text-quant-cyan" /> {indexName}{t('chartHeading')}
         </h3>
         <div className="flex gap-4 mb-2 flex-wrap">
           {Object.entries(COND_MAP).map(([k, c]) => (
             <div key={k} className="flex items-center gap-1">
               <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: c.upFill }} />
-              <span className="text-[10px] font-mono text-terminal-muted">{c.label}</span>
+              <span className="text-[10px] font-mono text-terminal-muted">{condLabel[k]}</span>
             </div>
           ))}
           <div className="flex items-center gap-1">
             <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: NO_COND.upFill }} />
-            <span className="text-[10px] font-mono text-terminal-muted">无数据</span>
+            <span className="text-[10px] font-mono text-terminal-muted">{t('noData')}</span>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={400}>
@@ -290,10 +299,10 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
               return (
                 <div className="glass-card-variant p-3 text-xs font-mono">
                   <p className="text-terminal-muted mb-1">{d.time?.substring(0, 10)}</p>
-                  <p>O: {o?.toFixed(2)} H: <span className="text-quant-red">{h?.toFixed(2)}</span></p>
-                  <p>L: <span className="text-quant-green">{l?.toFixed(2)}</span> C: <span className={c >= o ? 'text-quant-red' : 'text-quant-green'}>{c?.toFixed(2)}</span></p>
-                  {cond && <p style={{ color: cond.color }}>▶ {cond.label}</p>}
-                  {d.probability != null && <p className="text-terminal-muted">Prob: {((d.probability > 1 ? d.probability : d.probability * 100)).toFixed(0)}%</p>}
+                  <p>{t('openLabel')}: {o?.toFixed(2)} {t('highLabel')}: <span className="text-quant-red">{h?.toFixed(2)}</span></p>
+                  <p>{t('lowLabel')}: <span className="text-quant-green">{l?.toFixed(2)}</span> {t('closeLabel')}: <span className={c >= o ? 'text-quant-red' : 'text-quant-green'}>{c?.toFixed(2)}</span></p>
+                  {cond && <p style={{ color: cond.color }}>{t('aiClassLabel')}: {condLabel[d.marketCondition]}</p>}
+                  {d.probability != null && <p className="text-terminal-muted">{t('probLabel')}: {((d.probability > 1 ? d.probability : d.probability * 100)).toFixed(0)}%</p>}
                 </div>
               )
             }} />
@@ -301,13 +310,13 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
             <Bar dataKey="range" stackId="candle" shape={<CandleShape />} isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
-        <p className="text-[10px] text-terminal-muted mt-2">💡 蜡烛颜色 = AI 行情分类 · 共 {bars.length} 根K线，当前显示最近 {visibleBars} 根</p>
+        <p className="text-[10px] text-terminal-muted mt-2">{t('chartFooter', { total: bars.length, visible: visibleBars })}</p>
       </GlassCard>
 
       {/* ── avmood Trend Chart (only when Python API provides data) ── */}
       {avmoodRaw && avmoodRaw.length > 0 && (
         <GlassCard variant="subtle" className="p-5 mb-8">
-          <h3 className="font-display font-semibold text-sm mb-2">🧠 Fuzzy MA avmood — {indexName}</h3>
+          <h3 className="font-display font-semibold text-sm mb-2">{t('avmoodChartTitle', { name: indexName })}</h3>
           <ResponsiveContainer width="100%" height={280}>
             <ComposedChart data={avmoodChartData} margin={{ top: 4, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
@@ -317,14 +326,14 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
               <Tooltip content={({ active, payload }: any) => {
                 if (!active || !payload?.length) return null
                 const d = payload[0]?.payload; if (!d) return null
-                return <div className="glass-card-variant p-2 text-[10px] font-mono"><p className="text-terminal-muted">{d.time?.substring(0, 10)}</p>{d.avmood != null && <p className="text-[#AB63FA]">avmood: {d.avmood.toFixed(6)}</p>}</div>
+                return <div className="glass-card-variant p-2 text-[10px] font-mono"><p className="text-terminal-muted">{d.time?.substring(0, 10)}</p>{d.avmood != null && <p className="text-[#AB63FA]">{t('avmood')}: {d.avmood.toFixed(6)}</p>}</div>
               }} />
               <Line type="monotone" dataKey="avmood" stroke="#AB63FA" dot={false} strokeWidth={1.5} connectNulls />
               <ReferenceLine y={0} stroke="#F59E0B" strokeWidth={0.8} strokeDasharray="4 3" />
               <AvmoodCrossMarkers data={avmoodChartData} />
             </ComposedChart>
           </ResponsiveContainer>
-          <p className="text-[10px] text-terminal-muted mt-2">💡 紫色 = avmood ({'>'}0 多头, {'<'}0 空头) · ▲ 上穿0转多 · ▼ 下穿0转空</p>
+          <p className="text-[10px] text-terminal-muted mt-2">{t('avmoodLegend')}</p>
         </GlassCard>
       )}
 
@@ -336,37 +345,37 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
         const slope = latestVal != null && prev3 != null ? latestVal - prev3 : 0
         const isBull = latestVal > 0
         const absV = Math.abs(latestVal)
-        const strength = absV > 0.05 ? 'Strong' : absV > 0.02 ? 'Medium' : 'Weak'
+        const strength = absV > 0.05 ? t('strong') : absV > 0.02 ? t('medium') : t('weak')
         const dirColor = isBull ? '#10B981' : '#EF4444'
-        const trendText = slope > 0.005 ? '↑ Strengthening' : slope < -0.005 ? '↓ Weakening' : '→ Flat'
+        const trendText = slope > 0.005 ? t('strengthening') : slope < -0.005 ? t('weakening') : t('flat')
         const trendColor = slope > 0.005 ? '#10B981' : slope < -0.005 ? '#EF4444' : '#9CA3AF'
         return (
           <GlassCard variant="subtle" className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-display font-semibold text-sm">🧠 Fuzzy MA Trend Indicator (avmood)</h3>
-                <p className="text-[10px] text-terminal-muted">FuzzyMA 模糊推理 → avmood {'>'} 0 多头, {'<'} 0 空头</p>
+                <h3 className="font-display font-semibold text-sm">{t('avmoodCardTitle')}</h3>
+                <p className="text-[10px] text-terminal-muted">{t('avmoodCardSubtitle')}</p>
               </div>
               <div className="px-4 py-2 rounded-full text-white font-bold text-sm" style={{ backgroundColor: dirColor }}>
-                {isBull ? '🟢 Long ▲' : '🔴 Short ▼'}
+                {isBull ? t('longUp') : t('shortDown')}
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <GlassCard variant="subtle" className="p-3 text-center">
-                <p className="text-[10px] text-terminal-muted uppercase mb-1">avmood</p>
+                <p className="text-[10px] text-terminal-muted uppercase mb-1">{t('avmood')}</p>
                 <p className="font-mono text-xl font-bold" style={{ color: dirColor }}>{latestVal?.toFixed(6)}</p>
                 <p className={`text-[10px] font-mono ${slope >= 0 ? 'text-quant-green' : 'text-quant-red'}`}>{slope >= 0 ? '+' : ''}{slope.toFixed(4)}</p>
               </GlassCard>
               <GlassCard variant="subtle" className="p-3 text-center">
-                <p className="text-[10px] text-terminal-muted uppercase mb-1">Strength</p>
+                <p className="text-[10px] text-terminal-muted uppercase mb-1">{t('strength')}</p>
                 <p className="font-mono text-xl font-bold" style={{ color: dirColor }}>{strength}</p>
               </GlassCard>
               <GlassCard variant="subtle" className="p-3 text-center">
-                <p className="text-[10px] text-terminal-muted uppercase mb-1">Trend</p>
+                <p className="text-[10px] text-terminal-muted uppercase mb-1">{t('trend')}</p>
                 <p className="font-mono text-xl font-bold" style={{ color: trendColor }}>{trendText}</p>
               </GlassCard>
               <GlassCard variant="subtle" className="p-3 text-center">
-                <p className="text-[10px] text-terminal-muted uppercase mb-1">Range</p>
+                <p className="text-[10px] text-terminal-muted uppercase mb-1">{t('rangeLabel')}</p>
                 <p className="font-mono text-xs text-terminal-muted">[-0.10, +0.10]</p>
                 <div className="h-3 bg-gradient-to-r from-red-500/30 via-gray-400/20 to-green-500/30 rounded-full mt-2 relative">
                   <div className="absolute top-0 w-2 h-3 rounded-full -translate-x-1/2" style={{ left: `${Math.min(Math.max((latestVal + 0.1) / 0.2 * 100, 5), 95)}%`, backgroundColor: dirColor }} />
@@ -379,12 +388,12 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
 
       {/* ── Legend ── */}
       <details className="mt-8">
-        <summary className="text-sm font-display font-semibold cursor-pointer text-terminal-muted hover:text-foreground">📋 Legend</summary>
+        <summary className="text-sm font-display font-semibold cursor-pointer text-terminal-muted hover:text-foreground">{t('legend')}</summary>
         <div className="grid grid-cols-3 gap-4 mt-4">
           {Object.entries(COND_MAP).map(([k, c]) => (
             <div key={k} className="flex gap-2">
               <div className="w-1 rounded-full" style={{ backgroundColor: c.color }} />
-              <div><p className="text-xs font-semibold" style={{ color: c.color }}>■ {c.label}</p><p className="text-[10px] text-terminal-muted">蜡烛实体颜色 = {c.label}分类</p></div>
+              <div><p className="text-xs font-semibold" style={{ color: c.color }}>■ {condLabel[k]}</p><p className="text-[10px] text-terminal-muted">{t('candleLegend')} {condLabel[k]}{t('classification')}</p></div>
             </div>
           ))}
         </div>

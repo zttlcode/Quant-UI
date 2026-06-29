@@ -69,7 +69,7 @@ class AppConfig:
 
     # Web app
     app_title: str = "Quant-UI | Stock Strategy Visualization"
-    app_port: int = 8501
+    app_port: int = 8765
     app_host: str = "localhost"
 
     @classmethod

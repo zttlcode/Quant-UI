@@ -191,13 +191,19 @@ class TradePairer:
         price_df: pd.DataFrame,
     ) -> TradePair:
         """Create an open trade for a position that hasn't been closed yet."""
+        commission = self.config.commission
+        slippage = self.config.slippage
+
         # Get current price (last available close)
         if price_df.empty:
             current_price = buy_sig.price
         else:
             current_price = float(price_df["close"].iloc[-1])
 
-        pnl = (current_price - buy_sig.price) / buy_sig.price
+        # Apply costs consistently with _create_closed_trade
+        entry_cost = buy_sig.price * (1 + slippage) + commission
+        exit_cost = current_price * (1 - slippage) - commission
+        pnl = (exit_cost - entry_cost) / entry_cost
 
         # Compute stop loss
         atr_val = self._get_atr_at_time(buy_sig.time, price_df)
@@ -211,7 +217,7 @@ class TradePairer:
         return TradePair(
             entry_signal=buy_sig,
             exit_signal=None,
-            entry_price=buy_sig.price,
+            entry_price=entry_cost,
             exit_price=current_price,
             entry_time=buy_sig.time,
             exit_time=None,

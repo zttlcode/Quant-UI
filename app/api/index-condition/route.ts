@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 
-// CSV 文件路径
-const PRICE_CSV_PATH = 'D:\\github\\RobotMeQ_Dataset\\QuantData\\live_index\\live_bar_A_000001_d.csv'
-const CONDITION_CSV_PATH = 'D:\\github\\RobotMeQ_Dataset\\QuantData\\market_condition_live\\A_000001_d.csv'
+// CSV file paths — configurable via env var QUANT_UI_DATA_ROOT
+const DATA_ROOT = process.env.QUANT_UI_DATA_ROOT || 'D:\\github\\RobotMeQ_Dataset\\QuantData'
+const PRICE_CSV_PATH = path.join(DATA_ROOT, 'live_index', 'live_bar_A_000001_d.csv')
+const CONDITION_CSV_PATH = path.join(DATA_ROOT, 'market_condition_live', 'A_000001_d.csv')
 
 export interface IndexBar {
   time: string

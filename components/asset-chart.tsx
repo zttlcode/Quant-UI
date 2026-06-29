@@ -5,6 +5,7 @@ import { CandlestickPanel } from './chart/candlestick-panel'
 import { MACDPanel } from './chart/macd-panel'
 import { AvmoodPanel } from './chart/avmood-panel'
 import { buildChartData } from './chart/indicators'
+import { useT } from '@/lib/i18n'
 import type { PriceBar, TradeItem } from './chart/types'
 
 interface AssetChartProps {
@@ -24,13 +25,15 @@ export function AssetChart({
   showMA5 = true, showMA10 = true, showMA20 = true,
   showMACD = true,
 }: AssetChartProps) {
+  const t = useT('common')
+
   const chartData = useMemo(
     () => buildChartData(priceData, [], isFuzzy ? avmoodData : null),
     [priceData, isFuzzy, avmoodData],
   )
 
   if (!priceData.length) {
-    return <div className="flex items-center justify-center h-64 text-terminal-muted text-sm">No price data</div>
+    return <div className="flex items-center justify-center h-64 text-terminal-muted text-sm">{t('noData')}</div>
   }
 
   return (

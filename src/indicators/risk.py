@@ -13,19 +13,19 @@ These indicators are used by:
 """
 
 import logging
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, List
 
 import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# Indicator parameters (match config.yaml defaults)
-MACD_FAST = 12
-MACD_SLOW = 26
-MACD_SIGNAL = 9
-MA_PERIODS = [5, 10, 20]
-ATR_PERIOD = 14
+# Default indicator parameters (match config.yaml)
+_DEFAULT_MACD_FAST = 12
+_DEFAULT_MACD_SLOW = 26
+_DEFAULT_MACD_SIGNAL = 9
+_DEFAULT_MA_PERIODS = [5, 10, 20]
+_DEFAULT_ATR_PERIOD = 14
 
 # Risk thresholds
 RISK_RET_5D_HIGH = 15.0    # 前5日涨幅 > 15% → 追高风险
@@ -33,7 +33,14 @@ RISK_ATR_PCT_HIGH = 6.0    # ATR% > 6% → 高波动风险
 RISK_VOL_RATIO_HIGH = 2.0  # 量比 > 2.0 → 异常放量
 
 
-def compute_risk_indicators(price_df: pd.DataFrame) -> pd.DataFrame:
+def compute_risk_indicators(
+    price_df: pd.DataFrame,
+    macd_fast: int = _DEFAULT_MACD_FAST,
+    macd_slow: int = _DEFAULT_MACD_SLOW,
+    macd_signal: int = _DEFAULT_MACD_SIGNAL,
+    ma_periods: List[int] = _DEFAULT_MA_PERIODS,
+    atr_period: int = _DEFAULT_ATR_PERIOD,
+) -> pd.DataFrame:
     """Compute all risk-related indicators from OHLCV price data.
 
     Computes the following columns on a copy of the input DataFrame:
@@ -67,7 +74,7 @@ def compute_risk_indicators(price_df: pd.DataFrame) -> pd.DataFrame:
     vol = df["volume"].astype(float)
 
     # ---- Moving Averages ----
-    for period in MA_PERIODS:
+    for period in ma_periods:
         df[f"ma_{period}"] = close.rolling(period).mean()
         df[f"pct_ma_{period}"] = (
             (close - df[f"ma_{period}"]) / df[f"ma_{period}"] * 100
@@ -79,10 +86,10 @@ def compute_risk_indicators(price_df: pd.DataFrame) -> pd.DataFrame:
     ).astype(int)
 
     # ---- MACD ----
-    ema_fast = close.ewm(span=MACD_FAST, adjust=False).mean()
-    ema_slow = close.ewm(span=MACD_SLOW, adjust=False).mean()
+    ema_fast = close.ewm(span=macd_fast, adjust=False).mean()
+    ema_slow = close.ewm(span=macd_slow, adjust=False).mean()
     df["macd_dif"] = ema_fast - ema_slow
-    df["macd_dea"] = df["macd_dif"].ewm(span=MACD_SIGNAL, adjust=False).mean()
+    df["macd_dea"] = df["macd_dif"].ewm(span=macd_signal, adjust=False).mean()
     df["macd_hist"] = 2 * (df["macd_dif"] - df["macd_dea"])
 
     # ---- ATR ----
@@ -90,7 +97,7 @@ def compute_risk_indicators(price_df: pd.DataFrame) -> pd.DataFrame:
     tr2 = (high - close.shift(1)).abs()
     tr3 = (low - close.shift(1)).abs()
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    df["atr"] = tr.rolling(ATR_PERIOD).mean()
+    df["atr"] = tr.rolling(atr_period).mean()
     df["atr_pct"] = df["atr"] / close * 100  # ATR as % of price
 
     # ---- Volume ----

@@ -43,5 +43,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Logs
+output/*.log
+
 # Windows null device (if accidentally created)
 nul

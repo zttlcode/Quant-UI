@@ -351,7 +351,7 @@ async def stock_detail(request):
             "exitTime": t.exit_time.isoformat() if hasattr(t.exit_time, 'isoformat') else str(t.exit_time),
             "entryPrice": float(t.entry_price),
             "exitPrice": float(t.exit_price),
-            "pnlPct": float(t.pnl_pct) if t.pnl_pct is not None else None,
+            "pnlPct": round(float(t.pnl_pct) * 100, 2) if t.pnl_pct is not None else None,
             "isHolding": False,
         })
 
@@ -361,7 +361,7 @@ async def stock_detail(request):
             "exitTime": None,
             "entryPrice": float(open_pos.entry_price),
             "exitPrice": float(open_pos.exit_price) if open_pos.exit_price else None,
-            "pnlPct": float(open_pos.pnl_pct) if open_pos.pnl_pct is not None else None,
+            "pnlPct": round(float(open_pos.pnl_pct) * 100, 2) if open_pos.pnl_pct is not None else None,
             "isHolding": True,
         })
 
@@ -438,10 +438,7 @@ async def market_condition(request):
         }
         index_name = INDEX_NAME_MAP.get(code, code)
 
-        DATA_ROOT = config.price_root_dir.replace("\\live", "")
-        if not DATA_ROOT.endswith("QuantData"):
-            # Fallback: use the same root as config paths
-            DATA_ROOT = str(Path(config.index_price_csv_path).parent.parent)
+        DATA_ROOT = str(Path(config.index_price_csv_path).parent.parent)
 
         price_path = str(Path(DATA_ROOT) / "live_index" / f"live_bar_A_{code}_d.csv")
         condition_path = str(Path(DATA_ROOT) / "market_condition_live" / f"A_{code}_d.csv")
@@ -585,6 +582,6 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 
 if __name__ == "__main__":
-    print("🚀 Quant-UI API Server starting on http://localhost:8765")
+    print(f"🚀 Quant-UI API Server starting on http://{config.app_host}:{config.app_port}")
     print(f"   Strategies: {registry.list_names()}")
-    uvicorn.run(app, host="0.0.0.0", port=8765, log_level="info")
+    uvicorn.run(app, host=config.app_host, port=config.app_port, log_level="info")

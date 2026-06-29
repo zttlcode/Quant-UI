@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useT, useStrategyName, useStrategyDesc } from '@/lib/i18n'
 import { ArrowLeft, TrendingUp, Activity, BarChart3, AlertTriangle, Search, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/glass-card'
 import { CountUp } from '@/components/count-up'
-import { AIInferenceLoader } from '@/components/ai-inference-loader'
+
 import { fetchStrategies, fetchStrategyStocks } from '@/lib/data-service'
 import type { StockSummary } from '@/lib/data-service'
 import type { Strategy, StrategyStatus } from '@/types/strategy'
@@ -19,23 +20,10 @@ const STATUS_MAP: Record<StrategyStatus, { label: string; variant: 'success' | '
   backtesting: { label: 'Backtesting', variant: 'default' },
 }
 
-// ── Sort types & column definitions ─────────────────────────────
+// ── Sort types ────────────────────────────────────────────────────
 
 type SortKey = 'isHolding' | 'code' | 'name' | 'lastDate' | 'entryPrice' | 'currentPrice' | 'pnlPct' | 'signalCount' | 'tradeCount' | 'stopLossPrice'
 type SortDir = 'asc' | 'desc'
-
-const COLUMNS: { label: string; sortKey: SortKey }[] = [
-  { label: '',             sortKey: 'isHolding' },
-  { label: 'Code',         sortKey: 'code' },
-  { label: 'Name',         sortKey: 'name' },
-  { label: 'Date',         sortKey: 'lastDate' },
-  { label: 'Entry',        sortKey: 'entryPrice' },
-  { label: 'Current',      sortKey: 'currentPrice' },
-  { label: 'PnL%',         sortKey: 'pnlPct' },
-  { label: 'Sigs',         sortKey: 'signalCount' },
-  { label: 'Trades',       sortKey: 'tradeCount' },
-  { label: 'SL',           sortKey: 'stopLossPrice' },
-]
 
 function SortIcon({ columnKey, sortKey, sortDir }: { columnKey: SortKey; sortKey: SortKey | null; sortDir: SortDir }) {
   if (sortKey !== columnKey) {
@@ -54,12 +42,14 @@ function SortIcon({ columnKey, sortKey, sortDir }: { columnKey: SortKey; sortKey
 }
 
 export default function StrategyDetailPage({ params }: { params: { id: string } }) {
+  const t = useT('strategyDetail')
+  const sn = useStrategyName()
+  const sd = useStrategyDesc()
+
   const [strategy, setStrategy] = useState<Strategy | null>(null)
   const [stocks, setStocks] = useState<StockSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [inferenceResult, setInferenceResult] = useState<'BUY' | 'SELL' | 'HOLD' | null>(null)
-  const [inferring, setInferring] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [searchQuery, setSearchQuery] = useState('')
@@ -74,7 +64,7 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
       ])
       if (stratRes.error) { setError(stratRes.error); setLoading(false); return }
       const strat = stratRes.data!.find((s) => s.id === params.id)
-      if (!strat) { setError(`策略 "${params.id}" 未找到`); setLoading(false); return }
+      if (!strat) { setError(t('notFound', { id: params.id })); setLoading(false); return }
       setStrategy(strat)
 
       if (stockRes.error) { setError(stockRes.error); setLoading(false); return }
@@ -82,7 +72,7 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
       setLoading(false)
     }
     load()
-  }, [params.id])
+  }, [params.id, t])
 
   // Sort handlers & derived data — MUST be before any conditional return (hooks rule)
   const handleSort = (key: SortKey) => {
@@ -93,6 +83,19 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
       setSortDir('asc')
     }
   }
+
+  const COLUMNS: { label: string; sortKey: SortKey }[] = useMemo(() => [
+    { label: '',             sortKey: 'isHolding' },
+    { label: t('tableCode'),         sortKey: 'code' },
+    { label: t('tableName'),         sortKey: 'name' },
+    { label: t('tableDate'),         sortKey: 'lastDate' },
+    { label: t('tableEntry'),        sortKey: 'entryPrice' },
+    { label: t('tableCurrent'),      sortKey: 'currentPrice' },
+    { label: t('tablePnl'),         sortKey: 'pnlPct' },
+    { label: t('tableSigs'),         sortKey: 'signalCount' },
+    { label: t('tableTrades'),       sortKey: 'tradeCount' },
+    { label: t('tableSL'),           sortKey: 'stopLossPrice' },
+  ], [t])
 
   const filteredStocks = useMemo(() => {
     // Step 1: Filter
@@ -130,18 +133,18 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
     return result
   }, [stocks, sortKey, sortDir, searchQuery, statusFilter])
 
-  const STATUS_FILTERS: { key: 'all' | 'holding' | 'closed'; label: string }[] = [
-    { key: 'all', label: '全部' },
-    { key: 'holding', label: '📈 持仓中' },
-    { key: 'closed', label: '✅ 已清仓' },
-  ]
+  const STATUS_FILTERS: { key: 'all' | 'holding' | 'closed'; label: string }[] = useMemo(() => [
+    { key: 'all', label: t('filterAll') },
+    { key: 'holding', label: t('filterHolding') },
+    { key: 'closed', label: t('filterClosed') },
+  ], [t])
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-20 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-quant-cyan border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-terminal-muted font-mono text-sm">Loading strategy data...</p>
+          <p className="text-terminal-muted font-mono text-sm">{t('loadingStrategy')}</p>
         </div>
       </div>
     )
@@ -151,11 +154,11 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
     return (
       <div className="container mx-auto px-4 py-20">
         <Link href="/strategies" className="inline-flex items-center gap-2 text-terminal-muted hover:text-quant-cyan transition-colors text-sm mb-6">
-          <ArrowLeft className="w-4 h-4" /> All Strategies
+          <ArrowLeft className="w-4 h-4" /> {t('backToStrategies')}
         </Link>
         <div className="glass-card-variant p-8 text-center border-quant-red/30">
           <AlertTriangle className="w-8 h-8 text-quant-red mx-auto mb-3" />
-          <p className="text-quant-red font-mono text-sm font-semibold mb-2">数据加载失败</p>
+          <p className="text-quant-red font-mono text-sm font-semibold mb-2">{t('dataLoadFailed')}</p>
           <p className="text-terminal-muted text-xs font-mono">{error}</p>
         </div>
       </div>
@@ -172,7 +175,7 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
   return (
     <div className="container mx-auto px-4 py-12">
       <Link href="/strategies" className="inline-flex items-center gap-2 text-terminal-muted hover:text-quant-cyan transition-colors text-sm mb-4">
-        <ArrowLeft className="w-4 h-4" /> All Strategies
+        <ArrowLeft className="w-4 h-4" /> {t('backToStrategies')}
       </Link>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
@@ -183,48 +186,35 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
             </div>
             <Badge variant={STATUS_MAP[strategy.status].variant}>● {STATUS_MAP[strategy.status].label}</Badge>
           </div>
-          <h1 className="font-display text-3xl font-bold">{strategy.name}</h1>
-          <p className="text-terminal-muted text-sm mt-1">{strategy.description}</p>
+          <h1 className="font-display text-3xl font-bold">{sn(strategy.id, strategy.name)}</h1>
+          <p className="text-terminal-muted text-sm mt-1">{sd(strategy.id, strategy.description)}</p>
         </div>
-        <Button variant="glow" size="lg" onClick={() => setInferring(true)} disabled={inferring}>
-          {inferring ? 'Inferring...' : '▶ Run AI Inference'}
-        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-1 space-y-6">
           <GlassCard variant="subtle" className="p-5">
             <h3 className="font-display font-semibold text-sm mb-4 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-quant-cyan" /> Strategy Pipeline
+              <BarChart3 className="w-4 h-4 text-quant-cyan" /> {t('strategyPipeline')}
             </h3>
             <div className="space-y-1">
               {isMacd ? (
-                <>{flow('Price Data',1,true)}{flowConn()}{flow('Tea Radical Analysis',2,true)}{flowConn()}{flow('Multi-MA Signal',3,true)}{flowConn()}{flow('Trade Signal',4,false)}</>
+                <>{flow(t('flowPriceData'),1,true)}{flowConn()}{flow(t('flowTeaRadical'),2,true)}{flowConn()}{flow(t('flowMultiMA'),3,true)}{flowConn()}{flow(t('flowTradeSignal'),4,false,true)}</>
               ) : (
-                <>{flow('Price Data',1,true)}{flowConn()}{flow('Fuzzy Membership',2,true)}{flowConn()}{flow('Bayesian Optimization',3,true)}{flowConn()}{flow('Goal-Oriented Search',4,true)}{flowConn()}{flow('Trade Signal',5,false,true)}</>
+                <>{flow(t('flowPriceData'),1,true)}{flowConn()}{flow(t('flowFuzzyMembership'),2,true)}{flowConn()}{flow(t('flowBayesianOpt'),3,true)}{flowConn()}{flow(t('flowGoalSearch'),4,true)}{flowConn()}{flow(t('flowTradeSignal'),5,false,true)}</>
               )}
             </div>
           </GlassCard>
 
-          {inferring && <AIInferenceLoader onComplete={(r) => { setInferenceResult(r); setInferring(false) }} />}
-          {inferenceResult && (
-            <GlassCard variant="subtle" className="p-5 animate-count-up">
-              <h3 className="font-display font-semibold text-sm mb-3">Latest Inference</h3>
-              <div className={`text-center p-4 rounded-xl border ${inferenceResult === 'BUY' ? 'bg-quant-green/5 border-quant-green/20' : inferenceResult === 'SELL' ? 'bg-quant-red/5 border-quant-red/20' : 'bg-quant-amber/5 border-quant-amber/20'}`}>
-                <p className={`text-2xl font-bold font-mono ${inferenceResult === 'BUY' ? 'text-quant-green' : inferenceResult === 'SELL' ? 'text-quant-red' : 'text-quant-amber'}`}>{inferenceResult}</p>
-                <p className="text-xs text-terminal-muted mt-1">Confidence: {(Math.random()*15+80).toFixed(1)}%</p>
-              </div>
-            </GlassCard>
-          )}
 
           <GlassCard variant="subtle" className="p-5">
-            <h3 className="font-display font-semibold text-sm mb-3">Portfolio Summary</h3>
+            <h3 className="font-display font-semibold text-sm mb-3">{t('portfolioSummary')}</h3>
             <div className="space-y-3">
-              <Row label="总标的数" value={`${stocks.length}`} />
-              <Row label="持仓中" value={`${holdingCount}`} color="text-quant-green" />
-              <Row label="已清仓" value={`${stocks.length - holdingCount}`} color="text-quant-red" />
+              <Row label={t('totalStocks')} value={`${stocks.length}`} />
+              <Row label={t('holdingCount')} value={`${holdingCount}`} color="text-quant-green" />
+              <Row label={t('closedCount')} value={`${stocks.length - holdingCount}`} color="text-quant-red" />
               <div className="flex justify-between text-sm pt-2 border-t border-border">
-                <span className="text-terminal-muted">平均盈亏</span>
+                <span className="text-terminal-muted">{t('avgProfit')}</span>
                 <span className={`font-mono font-semibold ${avgPnl >= 0 ? 'text-quant-green' : 'text-quant-red'}`}>
                   {avgPnl >= 0 ? '+' : ''}{avgPnl.toFixed(2)}%
                 </span>
@@ -233,14 +223,14 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
           </GlassCard>
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-4 space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { label: 'Stocks', value: stocks.length, color: 'text-quant-cyan' },
-              { label: 'Trades', value: stocks.reduce((s, st) => s + st.tradeCount, 0), color: 'text-quant-cyan' },
-              { label: 'Holding', value: holdingCount, color: 'text-quant-green' },
-              { label: 'Avg PnL', value: avgPnl, isPnl: true },
-              { label: 'Win Rate', value: strategy.winRate, suffix: '%', decimals: 1, color: 'text-quant-cyan' },
+              { label: t('stocks'), value: stocks.length, color: 'text-quant-cyan' },
+              { label: t('trades'), value: stocks.reduce((s, st) => s + st.tradeCount, 0), color: 'text-quant-cyan' },
+              { label: t('holding'), value: holdingCount, color: 'text-quant-green' },
+              { label: t('avgPnL'), value: avgPnl, isPnl: true },
+              { label: t('winRate'), value: strategy.winRate, suffix: '%', decimals: 1, color: 'text-quant-cyan' },
             ].map((m) => (
               <GlassCard key={m.label} variant="subtle" className="p-4 text-center">
                 <p className="text-[10px] text-terminal-muted uppercase tracking-wider mb-1">{m.label}</p>
@@ -254,7 +244,7 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
           <GlassCard variant="subtle" className="p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <h3 className="font-display font-semibold text-sm">
-                Trading Assets ({filteredStocks.length}{filteredStocks.length !== stocks.length ? ` / ${stocks.length}` : ''})
+                {t('tradingAssets')} ({filteredStocks.length}{filteredStocks.length !== stocks.length ? ` / ${stocks.length}` : ''})
               </h3>
 
               {/* ── Toolbar: search + status filter ── */}
@@ -266,7 +256,7 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="搜索代码..."
+                    placeholder={t('searchCode')}
                     className="w-full pl-7 pr-7 py-1.5 text-xs font-mono bg-muted/20 border border-border rounded-lg text-foreground placeholder:text-terminal-muted/30 focus:outline-none focus:border-quant-cyan/40 focus:bg-muted/30 transition-colors"
                   />
                   {searchQuery && (
@@ -334,7 +324,7 @@ export default function StrategyDetailPage({ params }: { params: { id: string } 
                       <td className="py-2 px-2 font-mono text-xs text-terminal-muted">{s.tradeCount}</td>
                       <td className="py-2 px-2">
                         {s.stopLossPrice ? (
-                          <span className="text-[10px] font-mono text-quant-amber leading-tight" title={`止损日期: ${s.stopLossDate || '—'}`}>
+                          <span className="text-[10px] font-mono text-quant-amber leading-tight" title={`${t('stopLossDate')}: ${s.stopLossDate || '—'}`}>
                             ⚠️ {s.stopLossPrice.toFixed(4)}<br />
                             <span className="text-[9px] text-terminal-muted">{s.stopLossDate || ''}</span>
                           </span>

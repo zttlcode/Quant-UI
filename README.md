@@ -221,6 +221,6 @@ registry.register(MyNewAdapter(config))
 ## 许可证
 
 MIT
-ps://twitter.com/quant_trader)
+- Twitter: [@quant_trader](https://twitter.com/quant_trader)
 - 微信: quant_trader
 - 知识星球: [量化交易社区](https://knowledge-planet.com/quant)

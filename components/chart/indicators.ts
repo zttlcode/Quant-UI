@@ -55,10 +55,10 @@ function macd(data: number[], fast = 12, slow = 26, signal = 9) {
   return { dif, dea, macd: macdHist }
 }
 
-/** Build unified ChartDataPoint array from raw price + signals + optional avmood. */
+/** Build unified ChartDataPoint array from raw price + optional avmood. */
 export function buildChartData(
   priceData: PriceBar[],
-  signals: SignalItem[],
+  _signals: SignalItem[],
   avmoodData?: { time: string; value: number }[] | null,
 ): ChartDataPoint[] {
   if (!priceData.length) return []

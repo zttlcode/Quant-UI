@@ -327,23 +327,26 @@ class SignalLoader:
 
         strategy = self.config.duplicate_signal_strategy
 
-        # Group by (stock_code, date) — same stock + same day = duplicate
+        # Group by (stock_code, date, direction) — same stock + same day +
+        # same direction = duplicate. Opposite-direction signals on the
+        # same day (e.g. a buy AND a sell) are kept separately.
         groups: Dict[tuple, List[TradeSignal]] = {}
         for sig in signals:
-            key = (sig.stock_code, sig.date_str)
+            key = (sig.stock_code, sig.date_str, sig.is_buy)
             if key not in groups:
                 groups[key] = []
             groups[key].append(sig)
 
         deduped = []
-        for (stock_code, date_str), group in groups.items():
+        for (stock_code, date_str, is_buy), group in groups.items():
             # Sort by time within each group
             group.sort(key=lambda s: s.time)
 
+            direction = "buy" if is_buy else "sell"
             if len(group) > 1:
                 logger.info(
-                    "Duplicate signals on %s for %s: %d signals, keeping %s",
-                    date_str, stock_code, len(group), strategy,
+                    "Duplicate %s signals on %s for %s: %d signals, keeping %s",
+                    direction, date_str, stock_code, len(group), strategy,
                 )
 
             if strategy in ("first",):

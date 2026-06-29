@@ -3,31 +3,33 @@
 import { useEffect, useState } from 'react'
 import { SectionHeading } from '@/components/section-heading'
 import { CountUp } from '@/components/count-up'
+import { useT } from '@/lib/i18n'
 import type { Strategy } from '@/types/strategy'
 
 export function StatsSection({ strategies = [] }: { strategies?: Strategy[] }) {
   const [mounted, setMounted] = useState(false)
+  const t = useT('stats')
   useEffect(() => setMounted(true), [])
 
   const runningCount = strategies.filter(s => s.status === 'running').length
   const stats = [
     {
       value: runningCount,
-      label: 'Strategies',
+      label: t('strategies'),
       color: 'text-quant-cyan',
       glow: 'shadow-cyan-glow',
     },
     {
       value: 800,
       suffix: '+',
-      label: 'Stocks Covered',
+      label: t('stocksCovered'),
       color: 'text-quant-green',
       glow: 'shadow-green-glow',
     },
     {
       value: 'Deep TS',
       isText: true,
-      label: 'Inference Engine',
+      label: t('inferenceEngine'),
       color: 'text-quant-cyan',
       glow: 'shadow-cyan-glow',
     },
@@ -35,7 +37,7 @@ export function StatsSection({ strategies = [] }: { strategies?: Strategy[] }) {
       value: 'Meta',
       suffix: '-labeling',
       isText: true,
-      label: 'Core Engine',
+      label: t('coreEngine'),
       color: 'text-quant-green',
       glow: 'shadow-green-glow',
     },
@@ -45,8 +47,8 @@ export function StatsSection({ strategies = [] }: { strategies?: Strategy[] }) {
     <section className="py-24 relative">
       <div className="container mx-auto px-4">
         <SectionHeading
-          label="Statistics"
-          title="项目数据统计"
+          label={t('label')}
+          title={t('title')}
         />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto mt-12">

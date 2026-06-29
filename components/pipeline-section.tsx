@@ -3,18 +3,22 @@
 import { useState, useEffect } from 'react'
 import { SectionHeading } from '@/components/section-heading'
 import { cn } from '@/lib/utils'
-
-const PIPELINE_STEPS = [
-  { label: 'Historical\nMarket', color: 'border-quant-cyan/50 bg-quant-cyan/5' },
-  { label: 'Feature\nEngineering', color: 'border-quant-cyan/40 bg-quant-cyan/5' },
-  { label: 'Strategy\nSignal', color: 'border-blue-400/50 bg-blue-400/5' },
-  { label: 'Meta\nLabel', color: 'border-purple-400/50 bg-purple-400/5' },
-  { label: 'Deep Time Series\nInference', color: 'border-quant-green/50 bg-quant-green/5' },
-  { label: 'Trading\nSignal', color: 'border-quant-green/40 bg-quant-green/5' },
-  { label: 'Portfolio\nStats', color: 'border-amber-400/50 bg-amber-400/5' },
-]
+import { useT } from '@/lib/i18n'
 
 export function PipelineSection() {
+  const t = useT('pipeline')
+  const steps = t.raw('steps') as string[]
+
+  const PIPELINE_STEPS = [
+    { label: steps[0], color: 'border-quant-cyan/50 bg-quant-cyan/5' },
+    { label: steps[1], color: 'border-quant-cyan/40 bg-quant-cyan/5' },
+    { label: steps[2], color: 'border-blue-400/50 bg-blue-400/5' },
+    { label: steps[3], color: 'border-purple-400/50 bg-purple-400/5' },
+    { label: steps[4], color: 'border-quant-green/50 bg-quant-green/5' },
+    { label: steps[5], color: 'border-quant-green/40 bg-quant-green/5' },
+    { label: steps[6], color: 'border-amber-400/50 bg-amber-400/5' },
+  ]
+
   const [highlightIndex, setHighlightIndex] = useState(0)
 
   useEffect(() => {
@@ -28,9 +32,9 @@ export function PipelineSection() {
     <section className="py-24 relative overflow-hidden">
       <div className="container mx-auto px-4">
         <SectionHeading
-          label="AI Pipeline"
-          title="量化交易流水线"
-          subtitle="从历史市场数据到最终交易决策，每个环节都由 AI 驱动，形成完整的量化研究闭环。"
+          label={t('label')}
+          title={t('title')}
+          subtitle={t('subtitle')}
         />
 
         {/* Pipeline Flow */}

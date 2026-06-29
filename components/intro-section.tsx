@@ -3,42 +3,45 @@
 import { SectionHeading } from '@/components/section-heading'
 import { GlassCard } from '@/components/glass-card'
 import { Brain, Network, Cog, TrendingUp } from 'lucide-react'
-
-const FEATURES = [
-  {
-    icon: Brain,
-    title: 'Meta-labeling',
-    desc: '基于 Marcos López de Prado 理论，用次级模型过滤主策略的错误信号，有效降低假阳性率。',
-    gradient: 'from-quant-cyan/20 to-blue-500/10',
-  },
-  {
-    icon: Network,
-    title: 'Deep Time Series Models',
-    desc: '基于清华 Time-Series-Library，集成多种深度时序模型架构，捕捉市场多周期模式，实现高精度推理预测。',
-    gradient: 'from-purple-500/20 to-quant-cyan/10',
-  },
-  {
-    icon: Cog,
-    title: 'Strategy Engine',
-    desc: '多种策略引擎协同驱动，融合技术指标、模糊理论与贝叶斯优化等方法，覆盖不同市场状态。',
-    gradient: 'from-quant-green/20 to-emerald-500/10',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Live Trading',
-    desc: '实盘信号记录与跟踪，AI 模型持续推理，实时更新策略表现与市场行情分类。',
-    gradient: 'from-amber-500/20 to-quant-green/10',
-  },
-]
+import { useT } from '@/lib/i18n'
 
 export function IntroSection() {
+  const t = useT('intro')
+
+  const FEATURES = [
+    {
+      icon: Brain,
+      title: t('features.metaLabeling.title'),
+      desc: t('features.metaLabeling.desc'),
+      gradient: 'from-quant-cyan/20 to-blue-500/10',
+    },
+    {
+      icon: Network,
+      title: t('features.deepTS.title'),
+      desc: t('features.deepTS.desc'),
+      gradient: 'from-purple-500/20 to-quant-cyan/10',
+    },
+    {
+      icon: Cog,
+      title: t('features.strategyEngine.title'),
+      desc: t('features.strategyEngine.desc'),
+      gradient: 'from-quant-green/20 to-emerald-500/10',
+    },
+    {
+      icon: TrendingUp,
+      title: t('features.liveTrading.title'),
+      desc: t('features.liveTrading.desc'),
+      gradient: 'from-amber-500/20 to-quant-green/10',
+    },
+  ]
+
   return (
     <section id="intro" className="py-24 relative">
       <div className="container mx-auto px-4">
         <SectionHeading
-          label="What is this?"
-          title="AI 量化研究平台"
-          subtitle="This platform combines Meta-labeling, Deep Time Series Models and Bayesian Optimization to generate robust trading decisions."
+          label={t('label')}
+          title={t('title')}
+          subtitle={t('subtitle')}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
