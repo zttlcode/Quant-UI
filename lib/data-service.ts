@@ -8,7 +8,9 @@
 
 import type { Strategy } from '@/types/strategy'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8765'
+// 本地开发默认直连 localhost:8765
+// Docker 构建时通过 NEXT_PUBLIC_API_URL= 覆盖为空（?? 不会回退空字符串）
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8765'
 
 // ---------------------------------------------------------------
 // Types matching Python API responses
@@ -213,6 +215,11 @@ export async function fetchMarketConditionByCode(code: string): Promise<ApiResul
 }
 
 export async function fetchMarketOverview(): Promise<ApiResult<IndexOverviewItem[]>> {
+  // Prefer Python API (provides avmood data); fall back to Next.js API route
+  const result = await apiFetch<{ indices: IndexOverviewItem[] }>('/api/market-overview')
+  if (!result.error) return { data: result.data!.indices || [] }
+
+  // Try the built-in Next.js API route (reads CSV directly, limited avmood)
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 8000)

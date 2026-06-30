@@ -523,6 +523,131 @@ async def market_condition(request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+async def market_overview(_request):
+    """Return overview for all tracked market indices (latest price + condition + avmood)."""
+    import csv
+
+    INDICES: list[dict] = [
+        {"code": "000001", "name": "上证指数"},
+        {"code": "399006", "name": "创业板指"},
+    ]
+
+    DATA_ROOT = config.price_root_dir
+
+    results = []
+    for idx in INDICES:
+        code = idx["code"]
+        name = idx["name"]
+
+        price_path = Path(DATA_ROOT) / "live_index" / f"live_bar_A_{code}_d.csv"
+        condition_path = Path(DATA_ROOT) / "market_condition_live" / f"A_{code}_d.csv"
+
+        latest_close = 0.0
+        prev_close = 0.0
+        latest_date = ""
+
+        # Read last two price rows
+        if price_path.exists():
+            try:
+                with open(price_path, newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    rows = list(reader)
+                    if rows:
+                        last_row = rows[-1]
+                        latest_close = float(last_row.get("close", 0))
+                        latest_date = str(last_row.get("time", "")).strip()[:10]
+                    if len(rows) >= 2:
+                        prev_row = rows[-2]
+                        prev_close = float(prev_row.get("close", 0))
+            except Exception:
+                pass
+
+        change = latest_close - prev_close
+        change_pct = (change / prev_close * 100) if prev_close != 0 else 0.0
+
+        # Read last condition row
+        market_condition_val = None
+        probability = None
+        if condition_path.exists():
+            try:
+                with open(condition_path, newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    rows = list(reader)
+                    if rows:
+                        last_row = rows[-1]
+                        mc = str(last_row.get("market_condition", last_row.get("condition", ""))).strip()
+                        if mc in ("trend_up", "trend_down", "range"):
+                            market_condition_val = mc
+                        prob_str = last_row.get("probability", "")
+                        if prob_str:
+                            try:
+                                probability = float(prob_str)
+                            except (ValueError, TypeError):
+                                pass
+            except Exception:
+                pass
+
+        # avmood trend
+        avmood_trend = None
+        avmood_latest = None
+        try:
+            if price_path.exists():
+                avmood_df_raw = pd.read_csv(price_path)
+                if not avmood_df_raw.empty and "close" in avmood_df_raw.columns:
+                    if "time" in avmood_df_raw.columns:
+                        avmood_df_raw["time"] = pd.to_datetime(avmood_df_raw["time"])
+                        avmood_df_raw = avmood_df_raw.set_index("time").sort_index()
+                    loader = FuzzyMAExtraDataLoader(config)
+                    avmood_df = loader._compute_avmood(avmood_df_raw)
+                    if not avmood_df.empty and "avmood" in avmood_df.columns:
+                        avmood_vals = avmood_df["avmood"].dropna()
+                        if len(avmood_vals) >= 4:
+                            latest_val = float(avmood_vals.iloc[-1])
+                            prev_val = float(avmood_vals.iloc[-4])
+                            slope = latest_val - prev_val
+                            if slope > 0.005:
+                                avmood_trend = "↑ Strengthening"
+                            elif slope < -0.005:
+                                avmood_trend = "↓ Weakening"
+                            else:
+                                avmood_trend = "→ Flat"
+                            avmood_latest = round(latest_val, 4)
+        except Exception:
+            pass
+
+        results.append({
+            "code": code,
+            "name": name,
+            "latestClose": latest_close,
+            "prevClose": prev_close,
+            "change": round(change, 2),
+            "changePct": round(change_pct, 2),
+            "latestDate": latest_date,
+            "marketCondition": market_condition_val,
+            "probability": probability,
+            "avmoodTrend": avmood_trend,
+            "avmoodLatest": avmood_latest,
+        })
+
+    return JSONResponse({"indices": results})
+
+
+async def clear_server_cache(_request):
+    """Clear all strategy price data caches.
+
+    Call this after syncing new CSV data files to the server
+    to force re-reading from disk on the next request.
+    """
+    adapter_names = []
+    for adapter in registry:
+        adapter.clear_cache()
+        adapter_names.append(adapter.strategy_name)
+    return JSONResponse({
+        "status": "ok",
+        "message": f"Price cache cleared for {len(adapter_names)} strategies: {', '.join(adapter_names)}",
+    })
+
+
 async def chart_json(request):
     """Return Plotly chart JSON for a stock."""
     strategy_name = request.path_params["name"]
@@ -574,6 +699,8 @@ routes = [
     Route("/api/strategies/{name}/stocks", strategy_stocks),
     Route("/api/strategies/{name}/stocks/{code}", stock_detail),
     Route("/api/market-condition", market_condition),
+    Route("/api/clear-cache", clear_server_cache),
+    Route("/api/market-overview", market_overview),
     Route("/api/chart/{strategy}/{code}", chart_json),
 ]
 

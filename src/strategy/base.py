@@ -65,6 +65,14 @@ class BaseStrategyAdapter(ABC):
         """Get the extra data loader for this strategy."""
         return self._extra_loader
 
+    def clear_cache(self) -> None:
+        """Clear the internal price data cache.
+
+        Call this after syncing new CSV data to the server to force
+        re-reading from disk on the next request.
+        """
+        self._price_loader.clear_cache()
+
     def load_signals(self) -> List[TradeSignal]:
         """Load all trade signals for this strategy (effective only)."""
         return self._signal_loader.load_strategy_signals(self.strategy_name)

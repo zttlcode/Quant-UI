@@ -1,0 +1,39 @@
+# ============================================================
+# Quant-UI Next.js Frontend Dockerfile
+# ============================================================
+# Stage 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# API_URL is used server-side for rewrites (Docker internal network)
+# NEXT_PUBLIC_API_URL is baked into client JS (empty = same origin)
+ARG API_URL=http://backend:8765
+ENV API_URL=$API_URL
+ENV NEXT_PUBLIC_API_URL=
+
+COPY . .
+
+# 确保 public 目录存在（此项目无静态资源目录）
+RUN mkdir -p public
+
+# 验证 API_URL 是否正确传入（构建日志可见）
+RUN echo ">>> API_URL=$API_URL"
+
+RUN npm run build
+
+# Stage 2: Production runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]

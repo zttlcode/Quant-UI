@@ -1,0 +1,32 @@
+services:
+  backend:
+    build: .
+    container_name: quant-ui-backend
+    volumes:
+      - ./config.docker.yaml:/app/config.yaml:ro
+      - ${DATA_DIR:-/home/ubuntu/quant-ui-data}:/data
+    environment:
+      - QUANT_UI_SIGNAL_ROOT_DIR=/data
+      - QUANT_UI_PRICE_ROOT_DIR=/data
+      - QUANT_UI_OUTPUT_DIR=/data/output
+      - QUANT_UI_LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: quant-ui-frontend
+    environment:
+      - API_URL=http://backend:8765
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

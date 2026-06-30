@@ -144,6 +144,7 @@ export async function GET() {
     }
 
     // ── Try to enrich with avmood trend from Python API ──
+    const PYTHON_API = process.env.API_URL || 'http://localhost:8765'
     try {
       const avmoodResults = await Promise.allSettled(
         indices.map(async (idx) => {
@@ -151,7 +152,7 @@ export async function GET() {
           const timeout = setTimeout(() => controller.abort(), 5000)
           try {
             const res = await fetch(
-              `http://localhost:8765/api/market-condition?code=${idx.code}`,
+              `${PYTHON_API}/api/market-condition?code=${idx.code}`,
               { signal: controller.signal }
             )
             clearTimeout(timeout)
