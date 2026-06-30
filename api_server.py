@@ -533,9 +533,12 @@ async def market_overview(_request):
     """Return overview for all tracked market indices (latest price + condition + avmood)."""
     import csv
 
-    # price_root_dir points to .../QuantData/live, but live_index/
-    # is a sibling directory of live/. Go up one level to the data root.
-    DATA_ROOT = str(Path(config.price_root_dir).parent)
+    # Detect data root: live_index/ may be a child of price_root_dir
+    # (Docker: price_root_dir=/data, live_index at /data/live_index)
+    # or a sibling (local dev: price_root_dir=.../QuantData/live).
+    DATA_ROOT = config.price_root_dir
+    if not (Path(DATA_ROOT) / "live_index").exists():
+        DATA_ROOT = str(Path(DATA_ROOT).parent)
 
     # Scan live_index/ for all available index CSV files.
     # Filename: live_bar_{market}_{code}_{level}.csv
