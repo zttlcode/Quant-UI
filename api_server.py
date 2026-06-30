@@ -98,6 +98,14 @@ def _load_stock_name_map():
     return mapping
 
 
+# Known index name mapping. Key is the bare code (without market prefix).
+_INDEX_NAME_MAP: dict[str, str] = {
+    "000001": "上证指数",
+    "399006": "创业板指",
+    "NDX": "纳斯达克",
+}
+
+
 # Fallback names for ETFs / index funds not in a800_stocks.csv
 _FALLBACK_STOCK_NAMES: dict[str, str] = {
     "513030": "德国",
@@ -423,7 +431,8 @@ async def market_condition(request):
     """Return index market condition data + avmood trend data.
 
     Query params:
-        code (str): index code, e.g. 000001 (default), 399006, …
+        code (str): index code, e.g. 000001 (default), NDX, …
+        market (str): market, e.g. A (default), USA, …
     """
     try:
         import csv
@@ -431,17 +440,14 @@ async def market_condition(request):
 
         # ── Resolve index code ──
         code = request.query_params.get("code", "000001")
+        market = request.query_params.get("market", "A")
 
-        INDEX_NAME_MAP: dict[str, str] = {
-            "000001": "上证指数",
-            "399006": "创业板指",
-        }
-        index_name = INDEX_NAME_MAP.get(code, code)
+        index_name = _INDEX_NAME_MAP.get(code, code)
 
         DATA_ROOT = str(Path(config.index_price_csv_path).parent.parent)
 
-        price_path = str(Path(DATA_ROOT) / "live_index" / f"live_bar_A_{code}_d.csv")
-        condition_path = str(Path(DATA_ROOT) / "market_condition_live" / f"A_{code}_d.csv")
+        price_path = str(Path(DATA_ROOT) / "live_index" / f"live_bar_{market}_{code}_d.csv")
+        condition_path = str(Path(DATA_ROOT) / "market_condition_live" / f"{market}_{code}_d.csv")
 
         bars = []
         price_map = {}
@@ -527,20 +533,30 @@ async def market_overview(_request):
     """Return overview for all tracked market indices (latest price + condition + avmood)."""
     import csv
 
-    INDICES: list[dict] = [
-        {"code": "000001", "name": "上证指数"},
-        {"code": "399006", "name": "创业板指"},
-    ]
+    # price_root_dir points to .../QuantData/live, but live_index/
+    # is a sibling directory of live/. Go up one level to the data root.
+    DATA_ROOT = str(Path(config.price_root_dir).parent)
 
-    DATA_ROOT = config.price_root_dir
+    # Scan live_index/ for all available index CSV files.
+    # Filename: live_bar_{market}_{code}_{level}.csv
+    import re
+    _live_idx_dir = Path(DATA_ROOT) / "live_index"
+    _idx_entries: list[tuple[str, str]] = []  # (market, code)
+    if _live_idx_dir.exists():
+        _pat = re.compile(r"^live_bar_([^_]+)_(.+)_([^_]+)\.csv$")
+        for _f in _live_idx_dir.iterdir():
+            _m = _pat.match(_f.name)
+            if _m:
+                _idx_entries.append((_m.group(1), _m.group(2)))
+    # Sort: known indices first, then by code
+    _idx_entries.sort(key=lambda mc: (mc[1] not in _INDEX_NAME_MAP, mc[1]))
 
     results = []
-    for idx in INDICES:
-        code = idx["code"]
-        name = idx["name"]
+    for market, code in _idx_entries:
+        name = _INDEX_NAME_MAP.get(code, f"{market}:{code}")
 
-        price_path = Path(DATA_ROOT) / "live_index" / f"live_bar_A_{code}_d.csv"
-        condition_path = Path(DATA_ROOT) / "market_condition_live" / f"A_{code}_d.csv"
+        price_path = Path(DATA_ROOT) / "live_index" / f"live_bar_{market}_{code}_d.csv"
+        condition_path = Path(DATA_ROOT) / "market_condition_live" / f"{market}_{code}_d.csv"
 
         latest_close = 0.0
         prev_close = 0.0
@@ -617,6 +633,7 @@ async def market_overview(_request):
 
         results.append({
             "code": code,
+            "market": market,
             "name": name,
             "latestClose": latest_close,
             "prevClose": prev_close,

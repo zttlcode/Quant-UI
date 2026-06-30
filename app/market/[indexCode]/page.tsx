@@ -94,10 +94,11 @@ function normalizeBars(bars: IndexBar[]) {
 
 // ── Page ─────────────────────────────────────────────────────────
 
-export default function MarketDetailPage({ params }: { params: { indexCode: string } }) {
+export default function MarketDetailPage({ params, searchParams }: { params: { indexCode: string }; searchParams: { market?: string } }) {
   const t = useT('marketDetail')
   const { indexCode } = params
-  const indexMeta = MARKET_INDICES.find(i => i.code === indexCode)
+  const market = searchParams.market || 'A'
+  const indexMeta = MARKET_INDICES.find(i => i.code === indexCode && i.market === market)
   const indexName = indexMeta?.name || indexCode
 
   const [data, setData] = useState<MarketConditionResponse | null>(null)
@@ -107,7 +108,7 @@ export default function MarketDetailPage({ params }: { params: { indexCode: stri
 
   useEffect(() => {
     setLoading(true)
-    fetchMarketConditionByCode(indexCode).then(r => {
+    fetchMarketConditionByCode(indexCode, market).then(r => {
       if (r.error) { setError(r.error); setLoading(false); return }
       setData(r.data!)
       setLoading(false)

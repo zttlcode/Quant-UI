@@ -87,7 +87,7 @@ export default function MarketOverviewPage() {
           const ConditionIcon = meta?.icon
 
           return (
-            <Link key={idx.code} href={`/market/${idx.code}`} className="group block">
+            <Link key={idx.code} href={`/market/${idx.code}?market=${idx.market}`} className="group block">
               <GlassCard variant="subtle" className="p-5 h-full hover:border-quant-cyan/20 transition-all duration-300">
                 {/* Header: name + code + date */}
                 <div className="flex items-start justify-between mb-4">

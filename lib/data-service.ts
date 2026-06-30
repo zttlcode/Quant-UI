@@ -96,6 +96,7 @@ export interface MarketConditionResponse {
 
 export interface IndexOverviewItem {
   code: string
+  market: string
   name: string
   latestClose: number
   prevClose: number
@@ -109,9 +110,9 @@ export interface IndexOverviewItem {
   avmoodLatest?: number | null
 }
 
-export const MARKET_INDICES: { code: string; name: string }[] = [
-  { code: '000001', name: '上证指数' },
-  { code: '399006', name: '创业板指' },
+export const MARKET_INDICES: { code: string; market: string; name: string }[] = [
+  { code: '000001', market: 'A', name: '上证指数' },
+  { code: '399006', market: 'A', name: '创业板指' },
 ]
 
 type ApiResult<T> = { data: T; error?: undefined } | { data?: undefined; error: string }
@@ -192,9 +193,9 @@ export async function fetchMarketCondition(): Promise<ApiResult<MarketConditionR
   return result // return original error
 }
 
-export async function fetchMarketConditionByCode(code: string): Promise<ApiResult<MarketConditionResponse>> {
+export async function fetchMarketConditionByCode(code: string, market: string = 'A'): Promise<ApiResult<MarketConditionResponse>> {
   // Prefer Python API (provides avmood data); fall back to Next.js API route
-  const result = await apiFetch<MarketConditionResponse>(`/api/market-condition?code=${code}`)
+  const result = await apiFetch<MarketConditionResponse>(`/api/market-condition?code=${code}&market=${market}`)
   if (!result.error) return result
 
   // Try the built-in Next.js dynamic API route (reads CSV directly, no avmood)

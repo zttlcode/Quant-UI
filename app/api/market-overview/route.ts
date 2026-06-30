@@ -6,13 +6,69 @@ import path from 'path'
 
 const DATA_ROOT = process.env.QUANT_UI_DATA_ROOT || 'D:\\github\\RobotMeQ_Dataset\\QuantData'
 
-const INDICES: { code: string; name: string }[] = [
-  { code: '000001', name: '上证指数' },
-  { code: '399006', name: '创业板指' },
-]
+/** Known index name mapping. Key is the bare code (without market prefix). */
+const INDEX_NAME_MAP: Record<string, string> = {
+  '000001': '上证指数',
+  '399006': '创业板指',
+  '399001': '深证成指',
+  '399005': '中小板指',
+  '000016': '上证50',
+  '000300': '沪深300',
+  '000905': '中证500',
+  '000852': '中证1000',
+  '399673': '创业板50',
+  'NDX': '纳斯达克100',
+}
+
+interface IndexEntry {
+  code: string
+  market: string
+  name: string
+}
+
+/** Scan live_index/ directory for all available index CSV files.
+ *  Parses filename live_bar_{market}_{code}_{level}.csv → extracts
+ *  market and code separately. */
+function scanAvailableIndices(): IndexEntry[] {
+  const liveIndexDir = path.join(DATA_ROOT, 'live_index')
+  if (!fs.existsSync(liveIndexDir)) return []
+
+  const indices: IndexEntry[] = []
+  try {
+    const files = fs.readdirSync(liveIndexDir)
+    // live_bar_{market}_{code}_{level}.csv
+    // market = first segment, code = middle, level = last segment
+    const re = /^live_bar_([^_]+)_(.+)_([^_]+)\.csv$/
+    for (const f of files) {
+      const m = f.match(re)
+      if (m) {
+        const market = m[1]
+        const code = m[2]
+        indices.push({
+          code,
+          market,
+          name: INDEX_NAME_MAP[code] || `${market}:${code}`,
+        })
+      }
+    }
+  } catch {
+    // fall through
+  }
+
+  // Sort by known indices first, then by code
+  indices.sort((a, b) => {
+    const aKnown = INDEX_NAME_MAP[a.code] ? 0 : 1
+    const bKnown = INDEX_NAME_MAP[b.code] ? 0 : 1
+    if (aKnown !== bKnown) return aKnown - bKnown
+    return a.code.localeCompare(b.code)
+  })
+
+  return indices
+}
 
 export interface IndexOverviewItem {
   code: string
+  market: string
   name: string
   latestClose: number
   prevClose: number
@@ -28,9 +84,9 @@ export interface IndexOverviewItem {
 // ── Helpers ──────────────────────────────────────────────────────
 
 function readLastTwoPriceLines(
-  code: string
+  code: string, market: string
 ): { latest: { close: number; date: string }; prev: { close: number; date: string } } | null {
-  const pricePath = path.join(DATA_ROOT, 'live_index', `live_bar_A_${code}_d.csv`)
+  const pricePath = path.join(DATA_ROOT, 'live_index', `live_bar_${market}_${code}_d.csv`)
   if (!fs.existsSync(pricePath)) return null
 
   try {
@@ -64,9 +120,9 @@ function readLastTwoPriceLines(
 }
 
 function readLastConditionLine(
-  code: string
+  code: string, market: string
 ): { marketCondition: string; probability: number } | null {
-  const conditionPath = path.join(DATA_ROOT, 'market_condition_live', `A_${code}_d.csv`)
+  const conditionPath = path.join(DATA_ROOT, 'market_condition_live', `${market}_${code}_d.csv`)
   if (!fs.existsSync(conditionPath)) return null
 
   try {
@@ -109,9 +165,11 @@ export async function GET() {
   try {
     const indices: IndexOverviewItem[] = []
 
+    const INDICES = scanAvailableIndices()
     for (const idx of INDICES) {
-      const priceData = readLastTwoPriceLines(idx.code)
-      const conditionData = readLastConditionLine(idx.code)
+      const { code, market, name } = idx
+      const priceData = readLastTwoPriceLines(code, market)
+      const conditionData = readLastConditionLine(code, market)
 
       if (!priceData) continue // skip indices with no data
 
@@ -131,8 +189,9 @@ export async function GET() {
       }
 
       indices.push({
-        code: idx.code,
-        name: idx.name,
+        code,
+        market,
+        name,
         latestClose,
         prevClose,
         change,
