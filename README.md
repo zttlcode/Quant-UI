@@ -107,6 +107,41 @@ npm run dev
 
 浏览器打开 `http://localhost:3000` 查看前端页面。
 
+## Linux 云服务器部署
+
+将项目部署到 Linux 云服务器（需先安装 Docker 环境）：
+
+```bash
+# 1. SSH 登录你的 Linux 服务器
+ssh user@your-server-ip
+
+# 2. 克隆项目
+git clone https://github.com/zttlcode/Quant-UI.git quant-ui && cd quant-ui
+
+# 3. 运行一键部署脚本
+chmod +x deploy.sh
+sudo ./deploy.sh
+```
+
+> **注意**: 绑定域名后如果访问出现 502 错误，需要安装 Nginx 进行反向代理。
+
+## 每日数据同步
+
+每天本地更新数据文件后，将策略数据同步到 Linux 云服务器：
+
+```bash
+# 在你的 Windows 本地（Git Bash 中运行）
+chmod +x sync-data.sh
+
+# 每天本地更新了数据文件后，运行一次即可，脚本会自动检测本地数据目录
+./sync-data.sh root@<服务器IP>
+
+# 或者手动指定本地数据目录
+./sync-data.sh root@<服务器IP> /d/github/RobotMeQ_Dataset/QuantData
+```
+
+> **注意**: 只需要每天跑一次 `./sync-data.sh root@<服务器IP>` 更新数据即可，无需重启服务。
+
 ## 数据约定
 
 ### 策略信号数据
